@@ -13,7 +13,11 @@ struct InkFictionApp: App {
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            // Models will be added here as we implement them
+            JournalEntryModel.self,
+            JournalImageModel.self,
+            PersonaProfileModel.self,
+            PersonaAvatarModel.self,
+            AppSettingsModel.self
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,
@@ -35,6 +39,9 @@ struct InkFictionApp: App {
             RootView()
                 .environment(appState)
                 .environment(router)
+                .task {
+                    await initializeApp()
+                }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
                     handleAppBackground()
                 }
@@ -43,6 +50,43 @@ struct InkFictionApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    // MARK: - App Initialization
+
+    @MainActor
+    private func initializeApp() async {
+        Log.info("Initializing app...", category: .app)
+
+        // Get the model context from the container
+        let context = sharedModelContainer.mainContext
+
+        // Initialize repositories with model context
+        JournalRepository.shared.setModelContext(context)
+        PersonaRepository.shared.setModelContext(context)
+        SettingsRepository.shared.setModelContext(context)
+
+        // Check iCloud account status
+        await CloudKitManager.shared.checkAccountStatus()
+
+        // Load sync monitor's last sync date
+        SyncMonitor.shared.loadLastSyncDate()
+
+        // Warmup settings
+        await SettingsRepository.shared.warmup()
+
+        // Load persona if exists
+        do {
+            try await PersonaRepository.shared.loadPersona()
+            appState.hasPersona = PersonaRepository.shared.hasPersona
+        } catch {
+            Log.error("Failed to load persona", error: error, category: .persona)
+        }
+
+        // Update onboarding status
+        appState.hasCompletedOnboarding = SettingsRepository.shared.hasCompletedOnboarding
+
+        Log.info("App initialization complete", category: .app)
     }
 
     // MARK: - App Lifecycle
