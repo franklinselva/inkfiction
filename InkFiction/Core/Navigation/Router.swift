@@ -78,11 +78,11 @@ final class Router {
     // MARK: - Convenience
 
     func createNewJournalEntry() {
-        present(sheet: .newJournalEntry)
+        push(.journalEditor(entryId: nil))
     }
 
     func editJournalEntry(id: UUID) {
-        present(sheet: .editJournalEntry(id: id))
+        push(.journalEditor(entryId: id))
     }
 
     func viewJournalEntry(id: UUID) {

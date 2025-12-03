@@ -45,10 +45,16 @@ struct MainTabView: View {
 
     @State private var tabBarViewModel = TabBarViewModel()
     @State private var scrollOffset: CGFloat = 0
+    @State private var journalViewModel = JournalListViewModel()
 
     // Scroll collapse thresholds
     private let collapseThreshold: CGFloat = 80
     private let expandThreshold: CGFloat = 65
+
+    /// Whether to show the floating tab bar (hide when navigated to a destination)
+    private var shouldShowTabBar: Bool {
+        router.path.isEmpty
+    }
 
     var body: some View {
         @Bindable var router = router
@@ -68,46 +74,53 @@ struct MainTabView: View {
                     }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                // Reserve space for floating tab bar
+                // Reserve space for floating tab bar only when visible
                 Color.clear
-                    .frame(height: metrics.safeAreaHeight)
+                    .frame(height: shouldShowTabBar ? metrics.safeAreaHeight : 0)
             }
 
-            // Bottom blur overlay
-            VStack(spacing: 0) {
-                Spacer()
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .frame(height: metrics.blurHeight)
-                    .opacity(metrics.blurOpacity)
-                    .mask(
-                        LinearGradient(
-                            colors: [.clear, .black],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .ignoresSafeArea()
-            }
-            .allowsHitTesting(false)
-
-            // Floating UI (tab bar + FAB)
-            GeometryReader { geometry in
-                VStack {
+            // Bottom blur overlay - only show when tab bar is visible
+            if shouldShowTabBar {
+                VStack(spacing: 0) {
                     Spacer()
-                    FloatingUIContainer(
-                        viewModel: tabBarViewModel,
-                        theme: themeManager.currentTheme,
-                        metrics: metrics,
-                        onNewEntry: {
-                            router.createNewJournalEntry()
-                        }
-                    )
-                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, metrics.bottomPadding))
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .frame(height: metrics.blurHeight)
+                        .opacity(metrics.blurOpacity)
+                        .mask(
+                            LinearGradient(
+                                colors: [.clear, .black],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .ignoresSafeArea()
                 }
+                .allowsHitTesting(false)
+                .transition(.opacity.animation(.easeInOut(duration: 0.2)))
             }
-            .ignoresSafeArea()
+
+            // Floating UI (tab bar + FAB) - only show when on root tabs
+            if shouldShowTabBar {
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        FloatingUIContainer(
+                            viewModel: tabBarViewModel,
+                            theme: themeManager.currentTheme,
+                            metrics: metrics,
+                            onNewEntry: {
+                                router.createNewJournalEntry()
+                            }
+                        )
+                        .padding(.bottom, max(geometry.safeAreaInsets.bottom, metrics.bottomPadding))
+                    }
+                }
+                .ignoresSafeArea()
+                .transition(.move(edge: .bottom).combined(with: .opacity).animation(.easeInOut(duration: 0.25)))
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: shouldShowTabBar)
         .sheet(item: $router.presentedSheet) { sheet in
             sheetView(for: sheet)
         }
@@ -144,10 +157,8 @@ struct MainTabView: View {
     private var tabContent: some View {
         switch tabBarViewModel.selectedTab {
         case .journal:
-            JournalPlaceholderView()
-                .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.contentOffset.y
-                } action: { _, newValue in
+            JournalListView(viewModel: journalViewModel, scrollOffset: $scrollOffset)
+                .onChange(of: scrollOffset) { _, newValue in
                     handleScrollChange(newValue)
                 }
         case .timeline:
@@ -197,7 +208,7 @@ struct MainTabView: View {
         case .journalEntry(let id):
             Text("Journal Entry: \(id)")
         case .journalEditor(let entryId):
-            Text("Journal Editor: \(entryId?.uuidString ?? "New")")
+            JournalEditorView(entryId: entryId)
         case .timelineDay(let date):
             Text("Timeline Day: \(date.formatted())")
         case .insightDetail(let type):
@@ -219,11 +230,11 @@ struct MainTabView: View {
     private func sheetView(for sheet: SheetDestination) -> some View {
         switch sheet {
         case .newJournalEntry:
-            Text("New Journal Entry")
-                .presentationDetents([.large])
-        case .editJournalEntry(let id):
-            Text("Edit Entry: \(id)")
-                .presentationDetents([.large])
+            // Now handled via push navigation
+            EmptyView()
+        case .editJournalEntry:
+            // Now handled via push navigation
+            EmptyView()
         case .paywall:
             Text("Upgrade to Premium")
                 .presentationDetents([.medium, .large])

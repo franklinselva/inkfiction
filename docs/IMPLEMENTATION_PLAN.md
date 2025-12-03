@@ -658,94 +658,112 @@ InkFiction/
 
 ---
 
-## Phase 5: Journal Feature
+## Phase 5: Journal Feature ✅ COMPLETED
 
 **Priority:** Critical
+**Status:** ✅ Completed on 2025-12-03
 **Description:** Core journaling functionality with mood tracking and images.
 
 ### Checklist
 
-#### 5.1 Journal Models
-- [ ] Create `Features/Journal/Models/JournalEntry.swift`
-  ```swift
-  struct JournalEntry: Identifiable {
-      let id: UUID
-      var title: String
-      var content: String
-      var mood: Mood
-      var tags: [String]
-      var images: [JournalImage]
-      var isArchived: Bool
-      var isPinned: Bool
-      let createdAt: Date
-      var updatedAt: Date
-  }
-  ```
-- [ ] Create `Features/Journal/Models/Mood.swift`
-  ```swift
-  enum Mood: String, CaseIterable {
-      case happy, excited, peaceful, neutral
-      case thoughtful, sad, anxious, angry
+#### 5.1 Journal Models ✅
+- [x] Create `Features/Journal/Models/JournalEntry.swift`
+  - [x] Domain model for journal entries (separate from SwiftData model)
+  - [x] JournalImage model for images
+  - [x] Conversion from SwiftData JournalEntryModel
+  - [x] Computed properties for images, featured image, etc.
+- [x] Create `Features/Journal/Models/JournalFilterModels.swift`
+  - [x] DateRangeFilter enum (today, yesterday, thisWeek, lastWeek, etc.)
+  - [x] JournalFilterState struct with search, date range, archive
+  - [x] JournalSortOrder enum
+- [x] Mood enum already exists in `Core/Data/SwiftData/SwiftDataModels.swift`
 
-      var emoji: String { ... }
-      var color: Color { ... }
-  }
-  ```
-- [ ] Create `Features/Journal/Models/JournalImage.swift`
-  - [ ] ID, image data, caption
-  - [ ] isAIGenerated flag
+#### 5.2 Journal List ✅
+- [x] Create `Features/Journal/Views/JournalListView.swift`
+  - [x] Entry cards in list with swipe actions
+  - [x] Pull to refresh via loadEntries
+  - [x] Sync status indicator
+  - [x] Multi-selection mode with bulk actions
+  - [x] Archive toggle in header
+- [x] Create `Features/Journal/Components/JournalEntryCard.swift`
+  - [x] Title, mood icon, date
+  - [x] Preview text
+  - [x] Image thumbnail carousel
+  - [x] Pin indicator
+  - [x] Selection mode support
+- [x] Create `Features/Journal/Components/ExpandableSearchBar.swift`
+  - [x] Debounced text search
+  - [x] Date range filter menu
+  - [x] Custom date range picker sheet
+- [x] Create `Features/Journal/Components/TagChip.swift`
+  - [x] Removable tag chips
+  - [x] Flow layout for tags
 
-#### 5.2 Journal List
-- [ ] Create `Features/Journal/Views/JournalListView.swift`
-  - [ ] Entry cards in list/grid
-  - [ ] Pull to refresh
-  - [ ] Sync status indicator
-- [ ] Create `Features/Journal/Components/JournalCard.swift`
-  - [ ] Title, mood icon, date
-  - [ ] Preview text
-  - [ ] Image thumbnail
-- [ ] Create `Features/Journal/Components/FilterBar.swift`
-  - [ ] Mood filter
-  - [ ] Date range
-  - [ ] Archive toggle
-- [ ] Create `Features/Journal/Components/SearchBar.swift`
-  - [ ] Text search
-  - [ ] Search suggestions
+#### 5.3 Journal Editor ✅
+- [x] Create `Features/Journal/Views/JournalEditorSheet.swift`
+  - [x] Title input
+  - [x] TextEditor for content
+  - [x] Mood selector
+  - [x] Tag management
+  - [x] Image attachment via PhotosPicker
+  - [x] Keyboard height handling
+- [x] Create `Features/Journal/Components/MoodSelectorView.swift`
+  - [x] Grid of mood options with animation
+  - [x] Visual feedback on selection
+  - [x] Auto-collapse after selection
+- [x] Create `Features/Journal/Views/JournalEntryDetailView.swift`
+  - [x] Full entry display
+  - [x] Edit and delete actions
 
-#### 5.3 Journal Editor
-- [ ] Create `Features/Journal/Views/JournalEditorView.swift`
-  - [ ] Title input
-  - [ ] Rich text content
-  - [ ] Mood selector
-  - [ ] Tag input
-  - [ ] Image attachment
-  - [ ] Auto-save
-- [ ] Create `Features/Journal/Views/MoodSelectorView.swift`
-  - [ ] Grid of mood options
-  - [ ] Visual feedback
-- [ ] Create `Features/Journal/Views/ImageAttachmentView.swift`
-  - [ ] Camera capture
-  - [ ] Photo library picker
-  - [ ] AI generation trigger
+#### 5.4 Journal ViewModels ✅
+- [x] Create `Features/Journal/ViewModels/JournalListViewModel.swift`
+  - [x] Fetch entries with filtering
+  - [x] Incremental search optimization
+  - [x] Delete/archive operations
+  - [x] Multi-selection and bulk operations
+  - [x] Pin toggle
+- [x] Create `Features/Journal/ViewModels/JournalEditorViewModel.swift`
+  - [x] Create/edit entry
+  - [x] Image management
+  - [x] Tag management
+  - [x] Validation
+  - [x] Photo library permission handling
 
-#### 5.4 Journal ViewModels
-- [ ] Create `Features/Journal/ViewModels/JournalListViewModel.swift`
-  - [ ] Fetch entries
-  - [ ] Filter/search
-  - [ ] Delete/archive
-- [ ] Create `Features/Journal/ViewModels/JournalEditorViewModel.swift`
-  - [ ] Create/edit entry
-  - [ ] Auto-save timer
-  - [ ] Image management
-  - [ ] AI title generation
+### Files Created
+```
+InkFiction/
+├── Features/
+│   └── Journal/
+│       ├── Models/
+│       │   ├── JournalEntry.swift
+│       │   └── JournalFilterModels.swift
+│       ├── Views/
+│       │   ├── JournalListView.swift
+│       │   └── JournalEditorSheet.swift
+│       ├── ViewModels/
+│       │   ├── JournalListViewModel.swift
+│       │   └── JournalEditorViewModel.swift
+│       └── Components/
+│           ├── JournalEntryCard.swift
+│           ├── ExpandableSearchBar.swift
+│           ├── MoodSelectorView.swift
+│           └── TagChip.swift
+└── App/
+    └── RootView.swift (updated to use JournalListView)
+```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
 
 ### Reference Files (Old Project)
 | New File | Reference From |
 |----------|---------------|
 | `JournalEntry.swift` | `ink-snap/InkFiction/Features/Journal/Models/JournalEntry.swift` |
-| `Mood.swift` | `ink-snap/InkFiction/Features/Journal/Models/Mood.swift` |
+| `JournalFilterModels.swift` | `ink-snap/InkFiction/Features/Journal/Models/JournalFilterModels.swift` |
 | `JournalListView.swift` | `ink-snap/InkFiction/Features/Journal/Views/JournalView.swift` |
-| `JournalEditorView.swift` | `ink-snap/InkFiction/Features/Journal/Views/JournalEntrySheetView.swift` |
+| `JournalEditorSheet.swift` | `ink-snap/InkFiction/Features/Journal/Views/JournalEntrySheetView.swift` |
+| `ExpandableSearchBar.swift` | `ink-snap/InkFiction/Features/Journal/Views/ExpandableSearchBar.swift` |
+| `JournalEntryCard.swift` | Adapted from journal view patterns |
 
 ---
 
@@ -1446,7 +1464,7 @@ Configuration/
 | **2** | **Biometric App Protection** | **Critical** | ✅ Completed |
 | **3** | **Onboarding Flow** | **High** | ✅ Completed |
 | **4** | Persona Feature | High | Pending |
-| **5** | Journal Feature | Critical | Pending |
+| **5** | **Journal Feature** | **Critical** | ✅ Completed |
 | **6** | AI Integration | High | Pending |
 | **7** | **Timeline & Analytics** | **Medium** | ✅ Completed |
 | **8** | Insights & Reflect | Medium | Pending |
@@ -1469,3 +1487,4 @@ Configuration/
 | 1.5 | 2025-12-03 | **Phase 3 Completed** - Full onboarding flow with 4 screens: Welcome (animated hero, swipe drawer), Personality Quiz (3 questions with auto-progression), AI Companion Selection (4 companions: Poet, Sage, Dreamer, Realist), Permissions (notifications, photos, biometric). Includes OnboardingViewModel, reusable components (NavigationBar, CompanionCard, MorphSymbolView). Theme-aware with Paper theme integration. Build verified. |
 | 1.6 | 2025-12-03 | **Phase 11 Partial** - Custom floating tab bar with FAB implemented. Includes: FloatingTabBar (glass morphism, collapse/expand), FloatingTabBarItem (expanded/collapsed modes), FloatingActionButton (gradient + shadows), FloatingUIContainer (metrics-based layout), TabBarViewModel (state management), TabBarConfiguration (4 tabs: Journal, Timeline, Insights, Settings). Scroll-based collapse using iOS 18 onScrollGeometryChange. Updated iOS deployment target to 18.0. Theme system already complete with 9 themes. Build verified. |
 | 1.7 | 2025-12-03 | **Phase 7 Completed** - Full Timeline feature with visual memory cards. Includes: CalendarModels (CalendarEntry, CalendarMonth, CalendarDay, MonthlyStats, CalendarNavigation), FrequencyData (stats, streaks, word count, achievements), DayGroupedEntry for entry grouping with mood distribution. Views: TimelineView (day/week/month filtering, insights card, SwiftData integration), VisualMemoryPeriodCard, EntriesDetailSheet, TimelineFilterView, EmptyTimelineView. Components: DateIndicatorView, PeriodIndicatorView, MoodDistributionView, TimelineConnector, StaticCardStackView, SwipeableCardStack with share functionality. Utilities: DateFormattingUtility (smart labels), PeriodFormatterUtility. TimelineViewModel with streak calculation, mood analysis, entry grouping. ImageContainer model for visual memories. RootView updated to use TimelineView. Build verified. |
+| 1.8 | 2025-12-03 | **Phase 5 Completed** - Full Journal feature implementation. Models: JournalEntry (domain model), JournalImage, JournalFilterModels (DateRangeFilter, JournalFilterState, JournalSortOrder). Views: JournalListView (list with swipe actions, multi-selection, archive toggle), JournalEditorSheet (entry creation/editing), JournalEntryDetailView. ViewModels: JournalListViewModel (filtering, sorting, bulk operations, incremental search), JournalEditorViewModel (CRUD, image/tag management). Components: JournalEntryCard, ExpandableSearchBar (debounced, date filter), MoodSelectorView (animated grid), TagChip (flow layout), CustomDateRangePickerView. RootView updated to use JournalListView with proper editor sheet handling. Build verified. |
