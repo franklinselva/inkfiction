@@ -7,13 +7,14 @@ This file provides context for Claude in future sessions working on the InkFicti
 InkFiction is an iOS journaling app being rewritten from a Supabase-backed architecture to an iCloud-only (CloudKit) architecture.
 
 ### Key Characteristics
-- **iOS 17.0+** target
+- **iOS 18.0+** target (updated for onScrollGeometryChange API)
 - **SwiftUI** with **MVVM** architecture
 - **NavigationStack + Router** pattern for navigation
 - **CloudKit** for data sync (no Supabase)
 - **Biometric protection** (Face ID/Touch ID) for app access
 - **Single persona** with multiple avatar style variations
 - **No journal encryption** - security via biometric + iCloud
+- **Custom floating tab bar** with FAB and glass morphism effects
 
 ## Important Files
 

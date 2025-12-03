@@ -945,37 +945,46 @@ InkFiction/
 ## Phase 11: Themes & UI Polish
 
 **Priority:** Medium
+**Status:** Partially Complete (Tab Bar & FAB done)
 **Description:** Visual theming and core UI components.
 
 ### Checklist
 
-#### 11.1 Theme System
-- [ ] Create `Core/Theme/Theme.swift` - Theme protocol
-- [ ] Create `Core/Theme/ThemeManager.swift` - Observable theme state
-- [ ] Implement 8 themes:
-  - [ ] Paper (default)
-  - [ ] Dawn
-  - [ ] Bloom
-  - [ ] Sky
-  - [ ] Pearl
-  - [ ] Sunset
-  - [ ] Forest
-  - [ ] Aqua
+#### 11.1 Theme System ✅
+- [x] Create `Core/Theme/Theme.swift` - Theme protocol
+- [x] Create `Core/Theme/ThemeManager.swift` - Observable theme state
+- [x] Implement 9 themes:
+  - [x] Paper (default)
+  - [x] Dawn
+  - [x] Bloom
+  - [x] Sky
+  - [x] Pearl
+  - [x] Sunset
+  - [x] Forest
+  - [x] Aqua
+  - [x] Neon
 
-#### 11.2 Core Components
-- [ ] Create `Core/Components/FloatingTabBar.swift` - Custom floating tab bar
-- [ ] Create `Core/Components/FloatingActionButton.swift`
+#### 11.2 Core Components (Partial) ✅
+- [x] Create `Core/Components/TabBar/FloatingTabBar.swift` - Custom floating tab bar
+- [x] Create `Core/Components/TabBar/FloatingTabBarItem.swift` - Tab item component
+- [x] Create `Core/Components/TabBar/TabBarConfiguration.swift` - Tab destinations
+- [x] Create `Core/Components/TabBar/TabBarViewModel.swift` - Tab state management
+- [x] Create `Core/Components/TabBar/FloatingActionButton.swift`
+- [x] Create `Core/Components/TabBar/FloatingUIContainer.swift` - Container with metrics
 - [ ] Create `Core/Components/AsyncImageView.swift`
 - [ ] Create `Core/Components/LoadingView.swift`
 - [ ] Create `Core/Components/EmptyStateView.swift`
 - [ ] Create `Core/Components/SyncStatusView.swift`
 
-#### 11.3 Main App Shell
-- [ ] Create main `ContentView.swift` with:
-  - [ ] Custom floating tab bar (4 tabs)
-  - [ ] Tab destinations: Journal, Timeline, Insights, Settings
-  - [ ] Floating action button for new entry
-  - [ ] Smooth tab transitions
+#### 11.3 Main App Shell ✅
+- [x] Create main `MainTabView` in `RootView.swift` with:
+  - [x] Custom floating tab bar (4 tabs)
+  - [x] Tab destinations: Journal, Timeline, Insights, Settings
+  - [x] Floating action button for new entry (on Journal tab)
+  - [x] Smooth tab transitions
+  - [x] Scroll-based collapse/expand (iOS 18+)
+  - [x] Glass morphism effects
+  - [x] Theme integration
 
 ### Tab Bar Design
 ```
@@ -1337,7 +1346,7 @@ Configuration/
 | **8** | Insights & Reflect | Medium | Pending |
 | **9** | Settings | Medium | Pending |
 | **10** | Subscription & StoreKit | High | Pending |
-| **11** | Themes & UI Polish | Medium | Pending |
+| **11** | **Themes & UI Polish** | **Medium** | ⏳ Partial (Tab Bar + FAB) |
 | **12** | Testing & QA | Critical | Pending |
 
 ---
@@ -1352,3 +1361,4 @@ Configuration/
 | 1.3 | 2025-12-03 | **Phase 1 Completed** - CloudKit integration (CloudKitManager, CloudKitModels, SyncMonitor), SwiftData models for all entities, Repository pattern (JournalRepository, PersonaRepository, SettingsRepository). Offline-first approach with network reachability. Build verified. |
 | 1.4 | 2025-12-03 | **Phase 2 Completed** - Biometric app protection (BiometricService, BiometricGateView, BiometricViewModel). Face ID/Touch ID authentication with LocalAuthentication framework, error handling, failed attempt tracking, passcode fallback. App locks on background/launch. Build verified. |
 | 1.5 | 2025-12-03 | **Phase 3 Completed** - Full onboarding flow with 4 screens: Welcome (animated hero, swipe drawer), Personality Quiz (3 questions with auto-progression), AI Companion Selection (4 companions: Poet, Sage, Dreamer, Realist), Permissions (notifications, photos, biometric). Includes OnboardingViewModel, reusable components (NavigationBar, CompanionCard, MorphSymbolView). Theme-aware with Paper theme integration. Build verified. |
+| 1.6 | 2025-12-03 | **Phase 11 Partial** - Custom floating tab bar with FAB implemented. Includes: FloatingTabBar (glass morphism, collapse/expand), FloatingTabBarItem (expanded/collapsed modes), FloatingActionButton (gradient + shadows), FloatingUIContainer (metrics-based layout), TabBarViewModel (state management), TabBarConfiguration (4 tabs: Journal, Timeline, Insights, Settings). Scroll-based collapse using iOS 18 onScrollGeometryChange. Updated iOS deployment target to 18.0. Theme system already complete with 9 themes. Build verified. |
