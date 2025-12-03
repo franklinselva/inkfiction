@@ -359,15 +359,16 @@ InkFiction/
 
 ---
 
-## Phase 2: Biometric App Protection
+## Phase 2: Biometric App Protection ✅ COMPLETED
 
 **Priority:** Critical
+**Status:** ✅ Completed on 2025-12-03
 **Description:** Implement Face ID/Touch ID to protect app access (NOT encryption).
 
 ### Checklist
 
-#### 2.1 Biometric Service
-- [ ] Create `Core/Services/BiometricService.swift`
+#### 2.1 Biometric Service ✅
+- [x] Create `Core/Services/BiometricService.swift`
   ```swift
   final class BiometricService {
       enum BiometricType { case faceID, touchID, none }
@@ -377,29 +378,46 @@ InkFiction/
       func authenticate(reason: String) async -> AuthResult
   }
   ```
-- [ ] Use LocalAuthentication framework
-- [ ] Handle all LAError cases gracefully
-- [ ] Provide appropriate fallback messages
+- [x] Use LocalAuthentication framework
+- [x] Handle all LAError cases gracefully
+- [x] Provide appropriate fallback messages
 
-#### 2.2 Biometric Gate View
-- [ ] Create `Features/Biometric/Views/BiometricGateView.swift`
-  - [ ] App icon/logo display
-  - [ ] "Unlock with Face ID" button
-  - [ ] "Try Again" after failure
-  - [ ] Error message display
-- [ ] Create `Features/Biometric/ViewModels/BiometricViewModel.swift`
-  - [ ] Authentication state management
-  - [ ] Auto-trigger on appear
-  - [ ] Track failed attempts
+#### 2.2 Biometric Gate View ✅
+- [x] Create `Features/Biometric/Views/BiometricGateView.swift`
+  - [x] App icon/logo display
+  - [x] "Unlock with Face ID" button
+  - [x] "Try Again" after failure
+  - [x] Error message display
+- [x] Create `Features/Biometric/ViewModels/BiometricViewModel.swift`
+  - [x] Authentication state management
+  - [x] Auto-trigger on appear
+  - [x] Track failed attempts
 
-#### 2.3 App State Integration
-- [ ] Add `isUnlocked` to `AppState`
-- [ ] Lock app on:
-  - [ ] App launch
-  - [ ] Return from background
-- [ ] Skip biometric if:
-  - [ ] Device doesn't support it (show warning)
-  - [ ] User has disabled it in settings (future feature)
+#### 2.3 App State Integration ✅
+- [x] Add `isUnlocked` to `AppState` (already existed from Phase 0)
+- [x] Lock app on:
+  - [x] App launch
+  - [x] Return from background
+- [x] Skip biometric if:
+  - [x] Device doesn't support it (show warning)
+  - [x] User has disabled it in settings (future feature)
+
+### Files Created
+```
+InkFiction/
+├── Core/
+│   └── Services/
+│       └── BiometricService.swift
+└── Features/
+    └── Biometric/
+        ├── Views/
+        │   └── BiometricGateView.swift
+        └── ViewModels/
+            └── BiometricViewModel.swift
+```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
 
 ### Reference Files (Old Project)
 | New File | Reference From |
@@ -1256,7 +1274,7 @@ Configuration/
 |-------|-------------|----------|--------|
 | **0** | **Project Bootstrap & Infrastructure** | **Critical** | ✅ Completed |
 | **1** | **Data Layer & iCloud Integration** | **Critical** | ✅ Completed |
-| **2** | Biometric App Protection | Critical | Pending |
+| **2** | **Biometric App Protection** | **Critical** | ✅ Completed |
 | **3** | Onboarding Flow | High | Pending |
 | **4** | Persona Feature | High | Pending |
 | **5** | Journal Feature | Critical | Pending |
@@ -1278,3 +1296,4 @@ Configuration/
 | 1.1 | 2025-12-03 | Added Phase 0 (Fastlane, OSLog, Router), clarified single persona with multiple avatar styles, clarified biometric vs encryption, updated navigation to NavigationStack + Router |
 | 1.2 | 2025-12-03 | **Phase 0 Completed** - Project bootstrap, Fastlane setup, OSLog logging, NavigationStack+Router, base app files, Info.plist permissions. Simplified to single build configuration. Build verified with `fastlane build`. |
 | 1.3 | 2025-12-03 | **Phase 1 Completed** - CloudKit integration (CloudKitManager, CloudKitModels, SyncMonitor), SwiftData models for all entities, Repository pattern (JournalRepository, PersonaRepository, SettingsRepository). Offline-first approach with network reachability. Build verified. |
+| 1.4 | 2025-12-03 | **Phase 2 Completed** - Biometric app protection (BiometricService, BiometricGateView, BiometricViewModel). Face ID/Touch ID authentication with LocalAuthentication framework, error handling, failed attempt tracking, passcode fallback. App locks on background/launch. Build verified. |
