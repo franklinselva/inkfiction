@@ -45,7 +45,11 @@ struct TimelineFilterView: View {
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(themeManager.currentTheme.backgroundColor.opacity(0.4))
+                .fill(themeManager.currentTheme.surfaceColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(themeManager.currentTheme.strokeColor.opacity(0.2), lineWidth: 1)
+                )
         )
     }
 }

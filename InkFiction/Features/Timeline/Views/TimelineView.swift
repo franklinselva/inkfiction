@@ -20,67 +20,6 @@ struct TimelineView: View {
     @Namespace private var filterNamespace
     @State private var timelineImages: [UUID: [UUID: UIImage]] = [:]
 
-    private var insightsData: InsightsData {
-        let calendar = Calendar.current
-        let currentYear = calendar.component(.year, from: Date())
-        let entriesThisYear = entries.filter { entry in
-            calendar.component(.year, from: entry.createdAt) == currentYear
-        }
-
-        let uniqueDays = Set(
-            entriesThisYear.map { entry in
-                calendar.startOfDay(for: entry.createdAt)
-            })
-
-        let currentStreak = calculateCurrentStreak(from: entries, calendar: calendar)
-
-        return InsightsData(
-            entriesThisYear: entriesThisYear.count,
-            daysJournaled: uniqueDays.count,
-            currentStreak: currentStreak
-        )
-    }
-
-    private func calculateCurrentStreak(from entries: [JournalEntryModel], calendar: Calendar) -> Int {
-        guard !entries.isEmpty else { return 0 }
-
-        let uniqueDaysSet = Set(entries.map { calendar.startOfDay(for: $0.createdAt) })
-        let sortedUniqueDays = uniqueDaysSet.sorted(by: >)
-
-        guard !sortedUniqueDays.isEmpty else { return 0 }
-
-        let today = calendar.startOfDay(for: Date())
-        let mostRecentDate = sortedUniqueDays.first!
-
-        let daysSinceLastEntry =
-            calendar.dateComponents([.day], from: mostRecentDate, to: today).day ?? 0
-
-        if daysSinceLastEntry > 1 {
-            return 0
-        }
-
-        if sortedUniqueDays.count == 1 {
-            return 1
-        }
-
-        var streak = 1
-        for i in 0..<(sortedUniqueDays.count - 1) {
-            let currentDay = sortedUniqueDays[i]
-            let previousDay = sortedUniqueDays[i + 1]
-
-            let daysDiff =
-                calendar.dateComponents([.day], from: previousDay, to: currentDay).day ?? 0
-
-            if daysDiff == 1 {
-                streak += 1
-            } else {
-                break
-            }
-        }
-
-        return streak
-    }
-
     private var filteredEntries: [JournalEntryModel] {
         entries.sorted { $0.createdAt > $1.createdAt }
     }
@@ -126,12 +65,22 @@ struct TimelineView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // Navigation Header
+                NavigationHeaderView(
+                    config: NavigationHeaderConfig(
+                        title: "Timeline",
+                        leftButton: .avatar(action: {}),
+                        rightButton: .none
+                    ),
+                    scrollOffset: scrollOffset
+                )
+
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
-                        // Insights Card
-                        InsightsCard(data: insightsData)
+                        // Insights Container (scrollable Year/Weekly/Monthly cards)
+                        InsightsContainerView()
                             .padding(.horizontal, 16)
-                            .padding(.top, 20)
+                            .padding(.top, 8)
 
                         // Filter Tabs
                         TimelineFilterView(
@@ -207,100 +156,6 @@ struct TimelineView: View {
 
         timelineImages = imagesDict
         Log.debug("Extracted images from \(imagesDict.count) entries", category: .data)
-    }
-}
-
-// MARK: - Insights Card
-
-struct InsightsCard: View {
-    @Environment(\.themeManager) private var themeManager
-    let data: InsightsData
-
-    private var entriesText: String {
-        data.entriesThisYear <= 1 ? "Entry This Year" : "Entries This Year"
-    }
-
-    private var daysText: String {
-        data.daysJournaled <= 1 ? "Active Day" : "Active Days"
-    }
-
-    private var streakText: String {
-        data.currentStreak <= 1 ? "Day Streak" : "Days Streak"
-    }
-
-    var body: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 20) {
-                // Large number on the left (65% width)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Insights")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                    Text("\(data.entriesThisYear)")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                    Text(entriesText)
-                        .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                }
-                .frame(width: geometry.size.width * 0.65, alignment: .leading)
-
-                Spacer()
-
-                // Metrics grid on the right (35% width)
-                VStack(alignment: .leading, spacing: 16) {
-                    // Days Journaled
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(themeManager.currentTheme.accentColor)
-
-                            Text("\(data.daysJournaled)")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-                        }
-
-                        Text(daysText)
-                            .font(.caption2)
-                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                    }
-
-                    // Current Streak
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(themeManager.currentTheme.accentColor)
-
-                            Text("\(data.currentStreak)")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-                        }
-
-                        Text(streakText)
-                            .font(.caption2)
-                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                    }
-                }
-                .frame(width: geometry.size.width * 0.35, alignment: .leading)
-            }
-        }
-        .frame(height: 120)
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(themeManager.currentTheme.accentColor.opacity(0.15))
-                .shadow(
-                    color: themeManager.currentTheme.accentColor.opacity(0.1),
-                    radius: 8,
-                    x: 0,
-                    y: 4
-                )
-        )
     }
 }
 

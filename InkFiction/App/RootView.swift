@@ -92,18 +92,21 @@ struct MainTabView: View {
             .allowsHitTesting(false)
 
             // Floating UI (tab bar + FAB)
-            VStack {
-                Spacer()
-                FloatingUIContainer(
-                    viewModel: tabBarViewModel,
-                    theme: themeManager.currentTheme,
-                    metrics: metrics,
-                    onNewEntry: {
-                        router.createNewJournalEntry()
-                    }
-                )
-                .padding(.bottom, metrics.bottomPadding)
+            GeometryReader { geometry in
+                VStack {
+                    Spacer()
+                    FloatingUIContainer(
+                        viewModel: tabBarViewModel,
+                        theme: themeManager.currentTheme,
+                        metrics: metrics,
+                        onNewEntry: {
+                            router.createNewJournalEntry()
+                        }
+                    )
+                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, metrics.bottomPadding))
+                }
             }
+            .ignoresSafeArea()
         }
         .sheet(item: $router.presentedSheet) { sheet in
             sheetView(for: sheet)

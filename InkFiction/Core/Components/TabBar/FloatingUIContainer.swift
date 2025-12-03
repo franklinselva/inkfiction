@@ -178,7 +178,7 @@ struct FloatingContainerMetrics {
         containerHeight = FloatingContainerMetrics.lerp(72, 56, clamped)
         verticalOffset = FloatingContainerMetrics.lerp(8, 24, clamped)
         scale = FloatingContainerMetrics.lerp(1.0, 0.94, clamped)
-        bottomPadding = FloatingContainerMetrics.lerp(24, 16, clamped)
+        bottomPadding = FloatingContainerMetrics.lerp(36, 28, clamped)  // Increased bottom padding
 
         let baseSafeArea = FloatingContainerMetrics.lerp(26, 10, clamped)
         safeAreaHeight = containerHeight + bottomPadding + baseSafeArea
