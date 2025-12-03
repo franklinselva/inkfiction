@@ -148,7 +148,7 @@ struct MainTabView: View {
                     handleScrollChange(newValue)
                 }
         case .timeline:
-            TimelinePlaceholderView()
+            TimelineView(scrollOffset: $scrollOffset)
                 .onScrollGeometryChange(for: CGFloat.self) { geometry in
                     geometry.contentOffset.y
                 } action: { _, newValue in
