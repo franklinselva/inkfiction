@@ -88,8 +88,10 @@ final class JournalListViewModel {
         defer { isLoading = false }
 
         do {
+            // Include archived entries so they can be displayed when user toggles archive view
+            let filter = JournalFilter(includeArchived: true)
             let models = try await repository.fetchEntries(
-                filter: .default,
+                filter: filter,
                 sort: .dateDescending
             )
 

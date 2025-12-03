@@ -18,6 +18,7 @@ enum LogCategory: String, CaseIterable {
     case settings = "Settings"
     case analytics = "Analytics"
     case moodAnalysis = "MoodAnalysis"
+    case notifications = "Notifications"
 
     var subsystem: String {
         "com.quantumtech.InkFiction.\(rawValue)"
