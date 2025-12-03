@@ -213,7 +213,7 @@ final class PersonaRepository {
         }
 
         // Delete all avatars from CloudKit
-        for avatar in persona.avatars {
+        for avatar in persona.avatars ?? [] {
             if let recordName = avatar.cloudKitRecordName {
                 do {
                     let recordID = CKRecord.ID(recordName: recordName)
@@ -252,7 +252,7 @@ final class PersonaRepository {
         }
 
         // Check avatar limit per style
-        let existingStyleCount = persona.avatars.filter { $0.style == style }.count
+        let existingStyleCount = (persona.avatars ?? []).filter { $0.style == style }.count
         if existingStyleCount >= Constants.Persona.maxAvatarsPerStyle {
             throw PersonaRepositoryError.avatarLimitReached(style)
         }
@@ -265,7 +265,10 @@ final class PersonaRepository {
         )
 
         avatar.persona = persona
-        persona.avatars.append(avatar)
+        if persona.avatars == nil {
+            persona.avatars = []
+        }
+        persona.avatars?.append(avatar)
         persona.updatedAt = Date()
         persona.needsSync = true
 
@@ -314,10 +317,10 @@ final class PersonaRepository {
 
         // If removing active avatar, set another as active
         if persona.activeAvatarId == avatar.id {
-            persona.activeAvatarId = persona.avatars.first { $0.id != avatar.id }?.id
+            persona.activeAvatarId = (persona.avatars ?? []).first { $0.id != avatar.id }?.id
         }
 
-        persona.avatars.removeAll { $0.id == avatar.id }
+        persona.avatars?.removeAll { $0.id == avatar.id }
         persona.updatedAt = Date()
         context.delete(avatar)
 
@@ -340,7 +343,7 @@ final class PersonaRepository {
             throw PersonaRepositoryError.personaNotFound
         }
 
-        guard persona.avatars.contains(where: { $0.id == avatar.id }) else {
+        guard (persona.avatars ?? []).contains(where: { $0.id == avatar.id }) else {
             throw PersonaRepositoryError.avatarNotFound(avatar.id)
         }
 
@@ -367,13 +370,13 @@ final class PersonaRepository {
     /// Get avatars for a specific style
     func getAvatars(for style: AvatarStyle) -> [PersonaAvatarModel] {
         guard let persona = currentPersona else { return [] }
-        return persona.avatars.filter { $0.style == style }
+        return (persona.avatars ?? []).filter { $0.style == style }
     }
 
     /// Get all available avatar styles that have been generated
     var availableStyles: [AvatarStyle] {
         guard let persona = currentPersona else { return [] }
-        return Array(Set(persona.avatars.map { $0.style }))
+        return Array(Set((persona.avatars ?? []).map { $0.style }))
     }
 
     // MARK: - CloudKit Sync
@@ -529,7 +532,7 @@ final class PersonaRepository {
                       let id = UUID(uuidString: idString) else { continue }
 
                 // Check if avatar exists locally
-                let existingAvatar = persona.avatars.first { $0.id == id }
+                let existingAvatar = (persona.avatars ?? []).first { $0.id == id }
 
                 if existingAvatar == nil {
                     // Create new avatar
@@ -547,7 +550,10 @@ final class PersonaRepository {
                     )
 
                     avatar.persona = persona
-                    persona.avatars.append(avatar)
+                    if persona.avatars == nil {
+                        persona.avatars = []
+                    }
+                    persona.avatars?.append(avatar)
                 }
             }
 

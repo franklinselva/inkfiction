@@ -4,6 +4,11 @@
 //
 //  SwiftData models for local persistence with CloudKit sync support
 //
+//  IMPORTANT: CloudKit integration requires:
+//  - All attributes must be optional OR have default values
+//  - All relationships must be optional
+//  - No unique constraints (@Attribute(.unique) not allowed)
+//
 
 import CloudKit
 import Foundation
@@ -14,24 +19,25 @@ import SwiftUI
 
 @Model
 final class JournalEntryModel {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var content: String
-    var moodRaw: String
-    var tags: [String]
-    var createdAt: Date
-    var updatedAt: Date
-    var isArchived: Bool
-    var isPinned: Bool
+    // Primary identifier (no unique constraint for CloudKit)
+    var id: UUID = UUID()
+    var title: String = ""
+    var content: String = ""
+    var moodRaw: String = "Neutral"
+    var tags: [String] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+    var isArchived: Bool = false
+    var isPinned: Bool = false
 
     // CloudKit sync tracking
     var cloudKitRecordName: String?
     var lastSyncedAt: Date?
-    var needsSync: Bool
+    var needsSync: Bool = true
 
-    // Relationships
+    // Relationships - MUST be optional for CloudKit
     @Relationship(deleteRule: .cascade, inverse: \JournalImageModel.journalEntry)
-    var images: [JournalImageModel]
+    var images: [JournalImageModel]?
 
     var mood: Mood {
         get { Mood(rawValue: moodRaw) ?? .neutral }
@@ -72,18 +78,18 @@ final class JournalEntryModel {
 
 @Model
 final class JournalImageModel {
-    @Attribute(.unique) var id: UUID
+    var id: UUID = UUID()
     var imageData: Data?
     var caption: String?
-    var isAIGenerated: Bool
-    var createdAt: Date
+    var isAIGenerated: Bool = false
+    var createdAt: Date = Date()
 
     // CloudKit sync tracking
     var cloudKitRecordName: String?
     var lastSyncedAt: Date?
-    var needsSync: Bool
+    var needsSync: Bool = true
 
-    // Relationship
+    // Relationship - optional for CloudKit
     var journalEntry: JournalEntryModel?
 
     init(
@@ -111,21 +117,21 @@ final class JournalImageModel {
 
 @Model
 final class PersonaProfileModel {
-    @Attribute(.unique) var id: UUID
-    var name: String
+    var id: UUID = UUID()
+    var name: String = ""
     var bio: String?
     var attributesData: Data?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     // CloudKit sync tracking
     var cloudKitRecordName: String?
     var lastSyncedAt: Date?
-    var needsSync: Bool
+    var needsSync: Bool = true
 
-    // Relationships
+    // Relationships - MUST be optional for CloudKit
     @Relationship(deleteRule: .cascade, inverse: \PersonaAvatarModel.persona)
-    var avatars: [PersonaAvatarModel]
+    var avatars: [PersonaAvatarModel]?
 
     // Active avatar tracking
     var activeAvatarId: UUID?
@@ -144,9 +150,9 @@ final class PersonaProfileModel {
     // Get active avatar
     var activeAvatar: PersonaAvatarModel? {
         guard let activeId = activeAvatarId else {
-            return avatars.first
+            return avatars?.first
         }
-        return avatars.first { $0.id == activeId }
+        return avatars?.first { $0.id == activeId }
     }
 
     init(
@@ -179,17 +185,17 @@ final class PersonaProfileModel {
 
 @Model
 final class PersonaAvatarModel {
-    @Attribute(.unique) var id: UUID
-    var styleRaw: String
+    var id: UUID = UUID()
+    var styleRaw: String = "artistic"
     var imageData: Data?
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     // CloudKit sync tracking
     var cloudKitRecordName: String?
     var lastSyncedAt: Date?
-    var needsSync: Bool
+    var needsSync: Bool = true
 
-    // Relationship
+    // Relationship - optional for CloudKit
     var persona: PersonaProfileModel?
 
     var style: AvatarStyle {
@@ -220,19 +226,19 @@ final class PersonaAvatarModel {
 
 @Model
 final class AppSettingsModel {
-    @Attribute(.unique) var id: UUID
-    var themeId: String
-    var notificationsEnabled: Bool
+    var id: UUID = UUID()
+    var themeId: String = "paper"
+    var notificationsEnabled: Bool = true
     var dailyReminderTime: Date?
-    var aiAutoEnhance: Bool
-    var aiAutoTitle: Bool
-    var onboardingCompleted: Bool
-    var updatedAt: Date
+    var aiAutoEnhance: Bool = true
+    var aiAutoTitle: Bool = true
+    var onboardingCompleted: Bool = false
+    var updatedAt: Date = Date()
 
     // CloudKit sync tracking
     var cloudKitRecordName: String?
     var lastSyncedAt: Date?
-    var needsSync: Bool
+    var needsSync: Bool = true
 
     init(
         id: UUID = UUID(),
@@ -267,7 +273,7 @@ final class AppSettingsModel {
 
 // MARK: - Mood Enum
 
-enum Mood: String, CaseIterable, Codable {
+enum Mood: String, CaseIterable, Codable, Sendable {
     case happy = "Happy"
     case excited = "Excited"
     case peaceful = "Peaceful"
@@ -319,7 +325,7 @@ enum Mood: String, CaseIterable, Codable {
 
 // MARK: - Avatar Style Enum
 
-enum AvatarStyle: String, CaseIterable, Codable {
+enum AvatarStyle: String, CaseIterable, Codable, Sendable {
     case artistic
     case cartoon
     case minimalist
@@ -404,39 +410,39 @@ struct PersonaAttributes: Codable, Equatable, Sendable {
 
     // MARK: - Nested Enums
 
-    enum Gender: String, Codable, CaseIterable {
+    enum Gender: String, Codable, CaseIterable, Sendable {
         case male, female, neutral
     }
 
-    enum AgeRange: String, Codable, CaseIterable {
+    enum AgeRange: String, Codable, CaseIterable, Sendable {
         case child, teen, youngAdult, adult, middleAge, senior
     }
 
-    enum Ethnicity: String, Codable, CaseIterable {
+    enum Ethnicity: String, Codable, CaseIterable, Sendable {
         case ambiguous, caucasian, african, asian, hispanic, middleEastern, southAsian, mixed
     }
 
-    enum HairStyle: String, Codable, CaseIterable {
+    enum HairStyle: String, Codable, CaseIterable, Sendable {
         case bald, short, medium, long, curly, wavy, braided, ponytail, bun
     }
 
-    enum HairColor: String, Codable, CaseIterable {
+    enum HairColor: String, Codable, CaseIterable, Sendable {
         case black, brown, blonde, red, gray, white, colorful
     }
 
-    enum EyeColor: String, Codable, CaseIterable {
+    enum EyeColor: String, Codable, CaseIterable, Sendable {
         case brown, blue, green, hazel, gray, amber
     }
 
-    enum FacialFeature: String, Codable, CaseIterable {
+    enum FacialFeature: String, Codable, CaseIterable, Sendable {
         case glasses, sunglasses, beard, mustache, freckles, dimples, scars
     }
 
-    enum ClothingStyle: String, Codable, CaseIterable {
+    enum ClothingStyle: String, Codable, CaseIterable, Sendable {
         case casual, business, sporty, elegant, artistic, vintage, streetwear
     }
 
-    enum Accessory: String, Codable, CaseIterable {
+    enum Accessory: String, Codable, CaseIterable, Sendable {
         case hat, earrings, necklace, watch, headphones, scarf, tie
     }
 }

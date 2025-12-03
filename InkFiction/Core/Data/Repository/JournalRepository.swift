@@ -367,7 +367,10 @@ final class JournalRepository {
         )
 
         image.journalEntry = entry
-        entry.images.append(image)
+        if entry.images == nil {
+            entry.images = []
+        }
+        entry.images?.append(image)
 
         try await updateEntry(entry)
         Log.info("Image added to journal entry: \(entry.id)", category: .journal)
@@ -381,7 +384,7 @@ final class JournalRepository {
             throw JournalRepositoryError.modelContextNotAvailable
         }
 
-        entry.images.removeAll { $0.id == image.id }
+        entry.images?.removeAll { $0.id == image.id }
         context.delete(image)
 
         try await updateEntry(entry)
