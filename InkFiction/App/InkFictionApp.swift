@@ -8,6 +8,7 @@ struct InkFictionApp: App {
 
     @State private var appState = AppState()
     @State private var router = Router()
+    @State private var themeManager = ThemeManager()
 
     // MARK: - SwiftData
 
@@ -39,6 +40,8 @@ struct InkFictionApp: App {
             RootView()
                 .environment(appState)
                 .environment(router)
+                .environment(themeManager)
+                .preferredColorScheme(themeManager.colorScheme)
                 .task {
                     await initializeApp()
                 }
@@ -75,6 +78,9 @@ struct InkFictionApp: App {
         // Warmup settings
         await SettingsRepository.shared.warmup()
 
+        // Load theme from settings
+        await themeManager.loadThemeFromRepository()
+
         // Load persona if exists
         do {
             try await PersonaRepository.shared.loadPersona()
@@ -94,7 +100,8 @@ struct InkFictionApp: App {
     private func handleAppBackground() {
         Log.info("App entering background", category: .app)
         appState.isActive = false
-        appState.lock()
+        // NOTE: Temporarily disabled auto-lock during development
+        // appState.lock()
     }
 
     private func handleAppForeground() {

@@ -9,7 +9,8 @@ final class AppState {
     // MARK: - Authentication State
 
     /// Whether the user has passed biometric authentication
-    var isUnlocked: Bool = false
+    /// NOTE: Temporarily defaulting to true to bypass biometric during development
+    var isUnlocked: Bool = true
 
     /// Whether biometric authentication is in progress
     var isAuthenticating: Bool = false
