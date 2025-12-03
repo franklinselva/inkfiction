@@ -963,32 +963,103 @@ InkFiction/
 
 ---
 
-## Phase 8: Insights & Reflect
+## Phase 8: Insights & Reflect ✅ COMPLETED
 
 **Priority:** Medium
-**Description:** AI-powered insights and mood reflections.
+**Status:** ✅ Completed on 2025-12-03
+**Description:** AI-powered insights and mood reflections with organic mood orb visualization.
 
 ### Checklist
 
-#### 8.1 Insights Feature
-- [ ] Create `Features/Insights/Models/` (Daily, Weekly, Monthly insights)
-- [ ] Create `Features/Insights/Views/InsightsContainerView.swift`
-- [ ] Create `Features/Insights/Views/InsightCardView.swift`
-- [ ] Create `Features/Insights/Views/MoodDistributionView.swift`
-- [ ] Create `Features/Insights/ViewModels/InsightsViewModel.swift`
+#### 8.1 Reflect Feature ✅
+- [x] Create `Features/Reflect/Models/ReflectModels.swift`
+  - [x] MoodData struct with mood, intensity, entryCount, position, lastEntryDate
+  - [x] MoodReflection struct for AI-generated reflections
+  - [x] ReflectionConfig for reflection settings
+  - [x] TimeFrame enum (today, thisWeek, thisMonth, thisYear, lastYear, allTime)
+  - [x] MoodDetectionKeywords for keyword-based mood analysis
+  - [x] SentimentAnalysis for intensity calculation
+- [x] Create `Features/Reflect/Views/ReflectView.swift`
+  - [x] AnimatedGradientBackground for visual appeal
+  - [x] NavigationHeaderView with timeframe filter menu
+  - [x] OrganicMoodOrbCluster for mood visualization
+  - [x] Empty state view when no entries
+  - [x] SwiftData integration with @Query
+- [x] Create `Features/Reflect/Views/MoodDetailSheet.swift`
+  - [x] MoodDetailHeader with orb and entry count
+  - [x] MoodStatsSection with statistics boxes
+  - [x] VisualMemoriesSection with image grid and gallery
+  - [x] RecentEntriesSection with entry rows
+  - [x] ImageGalleryView for fullscreen image viewing
+- [x] Create `Features/Reflect/Views/ReflectMoodDistributionView.swift`
+  - [x] Bar-based mood distribution visualization
+- [x] Create `Features/Reflect/ViewModels/ReflectViewModel.swift`
+  - [x] Mood analysis with keyword scoring
+  - [x] Sentiment-based intensity calculation
+  - [x] Timeframe filtering
+  - [x] Mood insights generation
+  - [x] Entry grouping by mood
 
-#### 8.2 Reflect Feature
-- [ ] Create `Features/Reflect/Models/MoodReflection.swift`
-- [ ] Create `Features/Reflect/Models/ReflectionConfig.swift`
-- [ ] Create `Features/Reflect/Views/ReflectView.swift`
-- [ ] Create `Features/Reflect/Views/ReflectionCardView.swift`
-- [ ] Create `Features/Reflect/ViewModels/ReflectViewModel.swift`
+#### 8.2 Core Components ✅
+- [x] Create `Core/Components/GlassmorphicMoodOrb.swift`
+  - [x] Glassmorphic orb with floating animation
+  - [x] Glow effects with theme-aware intensity
+  - [x] Rim rotation animation
+  - [x] MoodType enum with color, icon, name
+  - [x] Color blending with theme colors
+- [x] Create `Core/Components/OrganicMoodOrbCluster.swift`
+  - [x] Force-directed physics simulation
+  - [x] Collision detection and resolution
+  - [x] Golden angle distribution for initial positioning
+  - [x] Staggered reveal animation from center
+  - [x] MoodOrbData struct for orb data
+- [x] Create `Core/Components/GradientBackground.swift`
+  - [x] AnimatedGradientBackground with layered animations
+  - [x] GradientCard view modifier
+  - [x] GlassOverlay component
+- [x] Update `Core/Components/NavigationHeaderView.swift`
+  - [x] Added menu right button type
+  - [x] Added toggle right button type
+- [x] Update `Core/Logging/Logger.swift`
+  - [x] Added analytics log category
+  - [x] Added moodAnalysis log category
+
+### Files Created
+```
+InkFiction/
+├── Core/
+│   ├── Components/
+│   │   ├── GlassmorphicMoodOrb.swift
+│   │   ├── GradientBackground.swift
+│   │   ├── OrganicMoodOrbCluster.swift
+│   │   └── NavigationHeaderView.swift (updated)
+│   └── Logging/
+│       └── Logger.swift (updated)
+└── Features/
+    └── Reflect/
+        ├── Models/
+        │   └── ReflectModels.swift
+        ├── Views/
+        │   ├── ReflectView.swift
+        │   ├── MoodDetailSheet.swift
+        │   └── ReflectMoodDistributionView.swift
+        └── ViewModels/
+            └── ReflectViewModel.swift
+```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
 
 ### Reference Files (Old Project)
 | New File | Reference From |
 |----------|---------------|
-| `InsightsContainerView.swift` | `ink-snap/InkFiction/Features/Insights/Views/InsightsContainerView.swift` |
 | `ReflectView.swift` | `ink-snap/InkFiction/Features/Reflect/Views/ReflectView.swift` |
+| `ReflectViewModel.swift` | `ink-snap/InkFiction/Features/Reflect/ViewModels/ReflectViewModel.swift` |
+| `GlassmorphicMoodOrb.swift` | `ink-snap/InkFiction/Core/Components/GlassmorphicMoodOrb.swift` |
+| `OrganicMoodOrbCluster.swift` | `ink-snap/InkFiction/Core/Components/OrganicMoodOrbCluster.swift` |
+| `GradientBackground.swift` | `ink-snap/InkFiction/Core/Components/GradientBackground.swift` |
+| `MoodDetailSheet.swift` | `ink-snap/InkFiction/Features/Reflect/Views/MoodDetailSheet.swift` |
+| `NavigationHeaderView.swift` | `ink-snap/InkFiction/Core/Components/NavigationHeaderView.swift` |
 
 ---
 
@@ -1467,7 +1538,7 @@ Configuration/
 | **5** | **Journal Feature** | **Critical** | ✅ Completed |
 | **6** | AI Integration | High | Pending |
 | **7** | **Timeline & Analytics** | **Medium** | ✅ Completed |
-| **8** | Insights & Reflect | Medium | Pending |
+| **8** | **Insights & Reflect** | **Medium** | ✅ Completed |
 | **9** | Settings | Medium | Pending |
 | **10** | Subscription & StoreKit | High | Pending |
 | **11** | **Themes & UI Polish** | **Medium** | ⏳ Partial (Tab Bar + FAB) |
@@ -1488,3 +1559,4 @@ Configuration/
 | 1.6 | 2025-12-03 | **Phase 11 Partial** - Custom floating tab bar with FAB implemented. Includes: FloatingTabBar (glass morphism, collapse/expand), FloatingTabBarItem (expanded/collapsed modes), FloatingActionButton (gradient + shadows), FloatingUIContainer (metrics-based layout), TabBarViewModel (state management), TabBarConfiguration (4 tabs: Journal, Timeline, Insights, Settings). Scroll-based collapse using iOS 18 onScrollGeometryChange. Updated iOS deployment target to 18.0. Theme system already complete with 9 themes. Build verified. |
 | 1.7 | 2025-12-03 | **Phase 7 Completed** - Full Timeline feature with visual memory cards. Includes: CalendarModels (CalendarEntry, CalendarMonth, CalendarDay, MonthlyStats, CalendarNavigation), FrequencyData (stats, streaks, word count, achievements), DayGroupedEntry for entry grouping with mood distribution. Views: TimelineView (day/week/month filtering, insights card, SwiftData integration), VisualMemoryPeriodCard, EntriesDetailSheet, TimelineFilterView, EmptyTimelineView. Components: DateIndicatorView, PeriodIndicatorView, MoodDistributionView, TimelineConnector, StaticCardStackView, SwipeableCardStack with share functionality. Utilities: DateFormattingUtility (smart labels), PeriodFormatterUtility. TimelineViewModel with streak calculation, mood analysis, entry grouping. ImageContainer model for visual memories. RootView updated to use TimelineView. Build verified. |
 | 1.8 | 2025-12-03 | **Phase 5 Completed** - Full Journal feature implementation. Models: JournalEntry (domain model), JournalImage, JournalFilterModels (DateRangeFilter, JournalFilterState, JournalSortOrder). Views: JournalListView (list with swipe actions, multi-selection, archive toggle), JournalEditorSheet (entry creation/editing), JournalEntryDetailView. ViewModels: JournalListViewModel (filtering, sorting, bulk operations, incremental search), JournalEditorViewModel (CRUD, image/tag management). Components: JournalEntryCard, ExpandableSearchBar (debounced, date filter), MoodSelectorView (animated grid), TagChip (flow layout), CustomDateRangePickerView. RootView updated to use JournalListView with proper editor sheet handling. Build verified. |
+| 1.9 | 2025-12-03 | **Phase 8 Completed** - Full Reflect feature with organic mood orb visualization. Components: GlassmorphicMoodOrb (floating animation, glow effects, rim rotation), OrganicMoodOrbCluster (force-directed physics, collision detection, golden angle distribution), GradientBackground (animated layers, glass overlay). Views: ReflectView (AnimatedGradientBackground, NavigationHeaderView with menu, OrganicMoodOrbCluster, empty state), MoodDetailSheet (stats, visual memories, recent entries, image gallery), ReflectMoodDistributionView. Models: MoodData, MoodReflection, ReflectionConfig, TimeFrame, MoodDetectionKeywords, SentimentAnalysis. ViewModel: ReflectViewModel (mood analysis, keyword scoring, sentiment intensity, timeframe filtering). Updated NavigationHeaderView with menu/toggle button types. Added analytics and moodAnalysis log categories. Build verified. |
