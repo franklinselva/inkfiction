@@ -30,10 +30,8 @@ struct JournalEntryCard: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                // Image preview (if has images)
-                if entry.hasImages {
-                    JournalImagePreview(images: entry.images)
-                }
+                // Contextual collage view (shows appropriate layout based on image count)
+                JournalContextualCollageView(entry: entry)
 
                 // Header with title, pin icon, date, and chevron
                 HStack {
@@ -143,50 +141,6 @@ struct JournalEntryCard: View {
             x: 0,
             y: 1
         )
-    }
-}
-
-// MARK: - Journal Image Preview
-
-struct JournalImagePreview: View {
-    let images: [JournalImage]
-
-    @Environment(\.themeManager) private var themeManager
-
-    var body: some View {
-        if images.count == 1, let image = images.first?.uiImage {
-            // Single image
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(height: 150)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-        } else if images.count > 1 {
-            // Multiple images grid
-            HStack(spacing: 8) {
-                ForEach(images.prefix(3)) { journalImage in
-                    if let uiImage = journalImage.uiImage {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(height: 100)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                }
-
-                if images.count > 3 {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(themeManager.currentTheme.surfaceColor)
-                            .frame(height: 100)
-
-                        Text("+\(images.count - 3)")
-                            .font(.headline)
-                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                    }
-                }
-            }
-        }
     }
 }
 
