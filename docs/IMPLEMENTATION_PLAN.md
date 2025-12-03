@@ -1097,43 +1097,165 @@ InkFiction/
 
 ---
 
-## Phase 10: Subscription & StoreKit
+## Phase 10: Subscription & StoreKit ✅ COMPLETED
 
 **Priority:** High
+**Status:** ✅ Completed on 2025-12-04
 **Description:** In-app purchases with StoreKit 2.
 
 ### Checklist
 
-#### 10.1 Subscription Models
-- [ ] Create `Features/Subscription/Models/SubscriptionTier.swift`
-  ```swift
-  enum SubscriptionTier: String {
-      case free
-      case enhanced
-      case premium
-  }
-  ```
-- [ ] Create `Features/Subscription/Models/UsageTracking.swift`
-- [ ] Create `Features/Subscription/Models/FeatureLimits.swift`
+#### 10.1 StoreKit Configuration ✅
+- [x] Create `InkFictionSubscriptions.storekit` - StoreKit 2 configuration file
+  - [x] 4 subscription products (Enhanced Monthly/Yearly, Premium Monthly/Yearly)
+  - [x] 7-day free trial for Enhanced tier
+  - [x] Subscription group: "InkFiction Subscriptions"
+  - [x] Pricing: Enhanced $4.99/mo or $47.99/yr, Premium $12.99/mo or $124.99/yr
 
-#### 10.2 Subscription Views
-- [ ] Create `Features/Subscription/Views/PaywallView.swift`
-- [ ] Create `Features/Subscription/Views/SubscriptionStatusView.swift`
-- [ ] Create `Features/Subscription/Views/PlanComparisonView.swift`
+#### 10.2 Subscription Models ✅
+- [x] Create `Features/Subscription/Models/SubscriptionTier.swift`
+  - [x] SubscriptionTier enum (free, enhanced, premium)
+  - [x] Display properties (displayName, badgeIcon, gradientColors)
+  - [x] Priority for upgrade comparisons
+  - [x] Color/gradient helpers
+- [x] Create `Features/Subscription/Models/SubscriptionPolicy.swift`
+  - [x] TierLimits struct with comprehensive limits
+  - [x] Daily AI image generations (0/4/20)
+  - [x] Persona styles (0/3/5)
+  - [x] Storage quotas (100MB/2GB/10GB)
+  - [x] AI feature flags (reflections, summaries, advanced AI)
+  - [x] PaywallFeature struct for paywall display
+  - [x] RetentionOffer configuration
+  - [x] UpgradeContext enum for context-aware messaging
+- [x] Create `Features/Subscription/Models/SubscriptionPricing.swift`
+  - [x] BillingPeriod enum (monthly/yearly)
+  - [x] Price lookup and formatting
+  - [x] Product ID mapping
+  - [x] Yearly savings calculation
 
-#### 10.3 Subscription Service
-- [ ] Create `Core/Services/SubscriptionService.swift`
-  - [ ] StoreKit 2 integration
-  - [ ] Purchase flow
-  - [ ] Restore purchases
-  - [ ] Entitlement checking
-- [ ] Create StoreKit configuration file for testing
+#### 10.3 StoreKit Manager ✅
+- [x] Create `Core/Services/StoreKit/StoreKitManager.swift`
+  - [x] StoreKit 2 integration with async/await
+  - [x] Product loading
+  - [x] Purchase flow with transaction verification
+  - [x] Restore purchases via AppStore.sync()
+  - [x] Transaction listener for real-time updates
+  - [x] Subscription state persistence
+
+#### 10.4 Subscription Service ✅
+- [x] Create `Core/Services/StoreKit/SubscriptionService.swift`
+  - [x] Entitlement checking
+  - [x] Usage tracking (daily AI images, persona generations)
+  - [x] Validation methods (canGenerateJournalImage, canCreatePersona)
+  - [x] Paywall state management
+  - [x] Daily usage reset logic
+  - [x] Environment key for SwiftUI injection
+
+#### 10.5 Paywall Display Manager ✅
+- [x] Create `Core/Services/StoreKit/PaywallDisplayManager.swift`
+  - [x] Paywall context (firstLaunch, periodicReminder, featureLimitHit, manualOpen)
+  - [x] Exponential backoff for periodic reminders
+  - [x] Monthly reset of dismiss count
+  - [x] Analytics event tracking
+  - [x] Debug info for testing
+
+#### 10.6 Subscription Views ✅
+- [x] Create `Features/Subscription/Views/PaywallView.swift`
+  - [x] Hero section with contextual messaging
+  - [x] Mood orb showcase with sample data
+  - [x] Feature showcase with PaywallFeature list
+  - [x] Pricing toggle (monthly/yearly)
+  - [x] Plan cards (Enhanced/Premium)
+  - [x] CTA button with purchase flow
+  - [x] Trial offer banner
+  - [x] Trust badges
+  - [x] Footer with Terms/Privacy, restore purchases
+- [x] Create `Features/Subscription/ViewModels/PaywallViewModel.swift`
+  - [x] Product loading
+  - [x] Purchase subscription flow
+  - [x] Restore purchases flow
+  - [x] Error handling
+  - [x] Trial eligibility check
+
+#### 10.7 Subscription Components ✅
+- [x] Create `Features/Subscription/Components/PlanCard.swift`
+  - [x] Multiple styles (selection, upgrade, currentPlan, full)
+  - [x] Tier-specific styling and gradients
+  - [x] Recommended badge
+  - [x] Price display with savings
+- [x] Create `Features/Subscription/Components/FeatureRow.swift`
+  - [x] Card, list, and compact styles
+  - [x] Icon with gradient
+- [x] Create `Features/Subscription/Components/PricingToggleView.swift`
+  - [x] Monthly/Yearly toggle with animation
+  - [x] "Save 20%" badge for yearly
+- [x] Create `Features/Subscription/Components/UpgradeButton.swift`
+  - [x] Large, medium, small styles
+  - [x] Processing state
+  - [x] Tier-specific gradient
+- [x] Create `Features/Subscription/Components/RestorePurchasesButton.swift`
+  - [x] Footer and card styles
+  - [x] Processing state
+- [x] Create `Features/Subscription/Components/TrialOfferBanner.swift`
+  - [x] Hero, compact, and card styles
+  - [x] 7-day free trial messaging
+
+#### 10.8 App Integration ✅
+- [x] Update `RootView.swift` - Paywall sheet handling
+- [x] Update `SettingsPlaceholderView` - Subscription section with upgrade button and usage stats
+- [x] Debug controls for subscription/paywall reset
+
+### Files Created
+```
+InkFiction/
+├── InkFictionSubscriptions.storekit
+├── Core/
+│   └── Services/
+│       └── StoreKit/
+│           ├── StoreKitManager.swift
+│           ├── SubscriptionService.swift
+│           └── PaywallDisplayManager.swift
+└── Features/
+    └── Subscription/
+        ├── Models/
+        │   ├── SubscriptionTier.swift
+        │   ├── SubscriptionPolicy.swift
+        │   └── SubscriptionPricing.swift
+        ├── Views/
+        │   └── PaywallView.swift
+        ├── ViewModels/
+        │   └── PaywallViewModel.swift
+        └── Components/
+            ├── PlanCard.swift
+            ├── FeatureRow.swift
+            ├── PricingToggleView.swift
+            ├── UpgradeButton.swift
+            ├── RestorePurchasesButton.swift
+            └── TrialOfferBanner.swift
+```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
+
+### Subscription Tiers
+
+| Tier | Monthly | Yearly | AI Images/Day | Persona Styles | Storage |
+|------|---------|--------|---------------|----------------|---------|
+| Free | $0 | $0 | 0 | 0 | 100 MB |
+| Enhanced | $4.99 | $47.99 | 4 | 3 | 2 GB |
+| Premium | $12.99 | $124.99 | 20 | 5 | 10 GB |
 
 ### Reference Files (Old Project)
 | New File | Reference From |
 |----------|---------------|
-| `SubscriptionTier.swift` | `ink-snap/InkFiction/Features/Subscription/Models/SubscriptionTier.swift` |
+| `SubscriptionTier.swift` | `ink-snap/InkFiction/Core/Subscription/SubscriptionPolicy.swift` |
+| `SubscriptionPolicy.swift` | `ink-snap/InkFiction/Core/Subscription/SubscriptionPolicy.swift` |
+| `SubscriptionPricing.swift` | `ink-snap/InkFiction/Core/Models/SubscriptionPricing.swift` |
+| `StoreKitManager.swift` | `ink-snap/InkFiction/Core/Services/Payment/StoreKitManager.swift` |
 | `PaywallView.swift` | `ink-snap/InkFiction/Features/Subscription/Views/PremiumPaywallView.swift` |
+| `PaywallViewModel.swift` | `ink-snap/InkFiction/Features/Subscription/ViewModels/PaywallViewModel.swift` |
+| `PaywallDisplayManager.swift` | `ink-snap/InkFiction/Core/Subscription/PaywallDisplayManager.swift` |
+| `PlanCard.swift` | `ink-snap/InkFiction/Core/Components/Subscription/PlanCard.swift` |
 
 ---
 
@@ -1540,7 +1662,7 @@ Configuration/
 | **7** | **Timeline & Analytics** | **Medium** | ✅ Completed |
 | **8** | **Insights & Reflect** | **Medium** | ✅ Completed |
 | **9** | Settings | Medium | Pending |
-| **10** | Subscription & StoreKit | High | Pending |
+| **10** | **Subscription & StoreKit** | **High** | ✅ Completed |
 | **11** | **Themes & UI Polish** | **Medium** | ⏳ Partial (Tab Bar + FAB) |
 | **12** | Testing & QA | Critical | Pending |
 
@@ -1560,3 +1682,4 @@ Configuration/
 | 1.7 | 2025-12-03 | **Phase 7 Completed** - Full Timeline feature with visual memory cards. Includes: CalendarModels (CalendarEntry, CalendarMonth, CalendarDay, MonthlyStats, CalendarNavigation), FrequencyData (stats, streaks, word count, achievements), DayGroupedEntry for entry grouping with mood distribution. Views: TimelineView (day/week/month filtering, insights card, SwiftData integration), VisualMemoryPeriodCard, EntriesDetailSheet, TimelineFilterView, EmptyTimelineView. Components: DateIndicatorView, PeriodIndicatorView, MoodDistributionView, TimelineConnector, StaticCardStackView, SwipeableCardStack with share functionality. Utilities: DateFormattingUtility (smart labels), PeriodFormatterUtility. TimelineViewModel with streak calculation, mood analysis, entry grouping. ImageContainer model for visual memories. RootView updated to use TimelineView. Build verified. |
 | 1.8 | 2025-12-03 | **Phase 5 Completed** - Full Journal feature implementation. Models: JournalEntry (domain model), JournalImage, JournalFilterModels (DateRangeFilter, JournalFilterState, JournalSortOrder). Views: JournalListView (list with swipe actions, multi-selection, archive toggle), JournalEditorSheet (entry creation/editing), JournalEntryDetailView. ViewModels: JournalListViewModel (filtering, sorting, bulk operations, incremental search), JournalEditorViewModel (CRUD, image/tag management). Components: JournalEntryCard, ExpandableSearchBar (debounced, date filter), MoodSelectorView (animated grid), TagChip (flow layout), CustomDateRangePickerView. RootView updated to use JournalListView with proper editor sheet handling. Build verified. |
 | 1.9 | 2025-12-03 | **Phase 8 Completed** - Full Reflect feature with organic mood orb visualization. Components: GlassmorphicMoodOrb (floating animation, glow effects, rim rotation), OrganicMoodOrbCluster (force-directed physics, collision detection, golden angle distribution), GradientBackground (animated layers, glass overlay). Views: ReflectView (AnimatedGradientBackground, NavigationHeaderView with menu, OrganicMoodOrbCluster, empty state), MoodDetailSheet (stats, visual memories, recent entries, image gallery), ReflectMoodDistributionView. Models: MoodData, MoodReflection, ReflectionConfig, TimeFrame, MoodDetectionKeywords, SentimentAnalysis. ViewModel: ReflectViewModel (mood analysis, keyword scoring, sentiment intensity, timeframe filtering). Updated NavigationHeaderView with menu/toggle button types. Added analytics and moodAnalysis log categories. Build verified. |
+| 2.0 | 2025-12-04 | **Phase 10 Completed** - Full Subscription & StoreKit implementation. StoreKit Config: InkFictionSubscriptions.storekit with 4 products (Enhanced/Premium × Monthly/Yearly), 7-day trial for Enhanced. Models: SubscriptionTier (free/enhanced/premium with gradients), SubscriptionPolicy (tier limits, feature flags, retention offers), SubscriptionPricing (pricing, product IDs). Services: StoreKitManager (StoreKit 2, purchase/restore, transaction listener), SubscriptionService (entitlements, usage tracking, daily reset), PaywallDisplayManager (exponential backoff, context-aware). Views: PaywallView (hero, mood orb showcase, features, plan cards, trial banner, trust badges), PaywallViewModel (purchase flow, restore). Components: PlanCard (4 styles), FeatureRow, PricingToggleView, UpgradeButton, RestorePurchasesButton, TrialOfferBanner. App integration: RootView paywall sheet, Settings subscription section with debug controls. Build verified. |

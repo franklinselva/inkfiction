@@ -1,0 +1,187 @@
+{
+  "identifier" : "F8C8A726",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6738951247",
+    "_developerTeamID" : "8X6AH36P5Z",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 774480000.0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21574142",
+      "localizations" : [
+
+      ],
+      "name" : "InkFiction Subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6738951248",
+          "introductoryOffer" : {
+            "internalID" : "78C05A46",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W",
+            "numberOfPeriods" : 1
+          },
+          "localizations" : [
+            {
+              "description" : "Monthly subscription to Enhanced tier with 4 AI images per day and 3 persona styles",
+              "displayName" : "Enhanced Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "enhanced_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Enhanced Monthly",
+          "subscriptionGroupID" : "21574142",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "47.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6738951249",
+          "introductoryOffer" : {
+            "internalID" : "78C05A47",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W",
+            "numberOfPeriods" : 1
+          },
+          "localizations" : [
+            {
+              "description" : "Yearly subscription to Enhanced tier with 4 AI images per day and 3 persona styles (Save 20%)",
+              "displayName" : "Enhanced Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "enhanced_yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Enhanced Yearly",
+          "subscriptionGroupID" : "21574142",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "12.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6738951250",
+          "localizations" : [
+            {
+              "description" : "Monthly subscription to Premium tier with 20 AI images per day and 5 persona styles",
+              "displayName" : "Premium Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "premium_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium Monthly",
+          "subscriptionGroupID" : "21574142",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "124.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6738951251",
+          "localizations" : [
+            {
+              "description" : "Yearly subscription to Premium tier with 20 AI images per day and 5 persona styles (Save 20%)",
+              "displayName" : "Premium Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "premium_yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Premium Yearly",
+          "subscriptionGroupID" : "21574142",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

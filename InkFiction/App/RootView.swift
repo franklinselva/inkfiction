@@ -52,10 +52,13 @@ struct MainTabView: View {
     @State private var tabBarViewModel = TabBarViewModel()
     @State private var scrollOffset: CGFloat = 0
     @State private var journalViewModel = JournalListViewModel()
+    @State private var showStartupPaywall = false
 
     // Scroll collapse thresholds
     private let collapseThreshold: CGFloat = 80
     private let expandThreshold: CGFloat = 65
+
+    private let paywallDisplayManager = PaywallDisplayManager.shared
 
     /// Whether to show the floating tab bar (hide when navigated to a destination)
     private var shouldShowTabBar: Bool {
@@ -155,6 +158,28 @@ struct MainTabView: View {
             }
         }
         .preferredColorScheme(themeManager.colorScheme)
+        .sheet(isPresented: $showStartupPaywall) {
+            PaywallView(context: paywallDisplayManager.paywallContext)
+                .environment(\.themeManager, themeManager)
+                .interactiveDismissDisabled(paywallDisplayManager.paywallContext == .firstLaunch)
+        }
+        .onAppear {
+            checkAndShowPaywall()
+        }
+    }
+
+    // MARK: - Paywall Check
+
+    private func checkAndShowPaywall() {
+        // Check if we should show the paywall on app startup
+        paywallDisplayManager.checkShouldShowPaywall()
+
+        if paywallDisplayManager.shouldShowPaywall {
+            // Delay slightly to ensure smooth transition after app loads
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showStartupPaywall = true
+            }
+        }
     }
 
     // MARK: - Tab Content
@@ -240,8 +265,8 @@ struct MainTabView: View {
             // Now handled via push navigation
             EmptyView()
         case .paywall:
-            Text("Upgrade to Premium")
-                .presentationDetents([.medium, .large])
+            PaywallView(context: .manualOpen)
+                .environment(\.themeManager, themeManager)
         default:
             Text("Sheet: \(sheet.id)")
         }
@@ -355,11 +380,15 @@ struct TimelinePlaceholderView: View {
 
 struct SettingsPlaceholderView: View {
     @Environment(AppState.self) private var appState
+    @Environment(Router.self) private var router
     @Environment(\.themeManager) private var themeManager
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Subscription Section
+                subscriptionSection
+
                 // Theme Selection
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Theme")
@@ -400,6 +429,18 @@ struct SettingsPlaceholderView: View {
                         appState.lock()
                     }
                     .foregroundColor(themeManager.currentTheme.accentColor)
+
+                    #if DEBUG
+                    Button("Reset Subscription") {
+                        StoreKitManager.shared.resetToFreeTier()
+                    }
+                    .foregroundColor(.orange)
+
+                    Button("Reset Paywall Tracking") {
+                        PaywallDisplayManager.shared.resetForTesting()
+                    }
+                    .foregroundColor(.orange)
+                    #endif
                 }
                 .padding()
                 .background(themeManager.currentTheme.surfaceColor)
@@ -413,6 +454,87 @@ struct SettingsPlaceholderView: View {
         }
         .background(themeManager.currentTheme.backgroundColor)
         .navigationTitle("Settings")
+    }
+
+    // MARK: - Subscription Section
+
+    private var subscriptionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Subscription")
+                .font(.headline)
+                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+
+            // Current tier display
+            HStack(spacing: 12) {
+                Image(systemName: StoreKitManager.shared.subscriptionTier.badgeIcon)
+                    .font(.title2)
+                    .foregroundStyle(StoreKitManager.shared.subscriptionTier.gradient())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(StoreKitManager.shared.subscriptionTier.displayName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+
+                    if let expiresAt = StoreKitManager.shared.subscriptionExpiresAt {
+                        Text("Renews \(expiresAt.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    } else if StoreKitManager.shared.subscriptionTier == .free {
+                        Text("Upgrade for more features")
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    }
+                }
+
+                Spacer()
+
+                if StoreKitManager.shared.subscriptionTier == .free {
+                    Button {
+                        router.presentedSheet = .paywall
+                    } label: {
+                        Text("Upgrade")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: themeManager.currentTheme.gradientColors,
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            )
+                    }
+                }
+            }
+
+            // Usage stats
+            if StoreKitManager.shared.subscriptionTier != .free {
+                Divider()
+                    .background(themeManager.currentTheme.textSecondaryColor.opacity(0.2))
+
+                Text(SubscriptionService.shared.getJournalImageUsageText())
+                    .font(.caption)
+                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+            }
+
+            // Restore purchases
+            RestorePurchasesButton(
+                isProcessing: false,
+                onRestore: {
+                    Task {
+                        try? await SubscriptionService.shared.restorePurchases()
+                    }
+                },
+                style: .card
+            )
+        }
+        .padding()
+        .background(themeManager.currentTheme.surfaceColor)
+        .cornerRadius(16)
     }
 }
 
