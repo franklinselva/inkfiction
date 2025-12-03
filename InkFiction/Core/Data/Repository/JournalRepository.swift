@@ -186,6 +186,18 @@ final class JournalRepository {
         do {
             var results = try context.fetch(descriptor)
 
+            // Force load images relationship for each entry
+            // SwiftData lazy-loads relationships, so we need to access them to populate the data
+            for entry in results {
+                _ = entry.images?.count
+                // Also ensure imageData is loaded for each image
+                if let images = entry.images {
+                    for image in images {
+                        _ = image.imageData
+                    }
+                }
+            }
+
             // Apply search text filter in memory (SwiftData predicate limitations)
             if let searchText = filter.searchText, !searchText.isEmpty {
                 let lowercasedSearch = searchText.lowercased()
@@ -224,7 +236,18 @@ final class JournalRepository {
 
         do {
             let results = try context.fetch(descriptor)
-            return results.first
+            if let entry = results.first {
+                // Force load images relationship
+                // SwiftData lazy-loads relationships, so we need to access them to populate the data
+                _ = entry.images?.count
+                if let images = entry.images {
+                    for image in images {
+                        _ = image.imageData
+                    }
+                }
+                return entry
+            }
+            return nil
         } catch {
             Log.error("Failed to fetch entry by ID: \(id)", error: error, category: .journal)
             throw JournalRepositoryError.entryNotFound(id)
@@ -384,6 +407,9 @@ final class JournalRepository {
             throw JournalRepositoryError.modelContextNotAvailable
         }
 
+        // Delete from CloudKit if synced
+        await deleteImageFromCloudKit(image)
+
         entry.images?.removeAll { $0.id == image.id }
         context.delete(image)
 
@@ -393,7 +419,7 @@ final class JournalRepository {
 
     // MARK: - CloudKit Sync
 
-    /// Sync a single entry to CloudKit
+    /// Sync a single entry to CloudKit (including images)
     private func syncEntryToCloudKit(_ entry: JournalEntryModel) async {
         guard syncMonitor.canSync else {
             Log.debug("Cannot sync - network or account unavailable", category: .cloudKit)
@@ -403,12 +429,20 @@ final class JournalRepository {
         syncMonitor.beginSync()
 
         do {
+            // First, sync the entry record
             let record = entry.toRecord()
             let savedRecord = try await cloudKitManager.save(record)
 
             entry.cloudKitRecordName = savedRecord.recordID.recordName
             entry.lastSyncedAt = Date()
             entry.needsSync = false
+
+            // Then, sync all images that need syncing
+            if let images = entry.images {
+                for image in images where image.needsSync {
+                    await syncImageToCloudKit(image, entryId: entry.id)
+                }
+            }
 
             if let context = modelContext {
                 try context.save()
@@ -421,6 +455,41 @@ final class JournalRepository {
         } catch {
             syncMonitor.syncFailed(error: error)
             Log.error("Failed to sync entry to CloudKit", error: error, category: .cloudKit)
+        }
+    }
+
+    /// Sync a single image to CloudKit
+    private func syncImageToCloudKit(_ image: JournalImageModel, entryId: UUID) async {
+        guard let record = image.toRecord(entryId: entryId) else {
+            Log.warning("Failed to create CloudKit record for image \(image.id)", category: .cloudKit)
+            return
+        }
+
+        do {
+            let savedRecord = try await cloudKitManager.save(record)
+
+            image.cloudKitRecordName = savedRecord.recordID.recordName
+            image.lastSyncedAt = Date()
+            image.needsSync = false
+
+            Log.info("Image synced to CloudKit: \(image.id)", category: .cloudKit)
+        } catch {
+            Log.error("Failed to sync image to CloudKit: \(image.id)", error: error, category: .cloudKit)
+        }
+    }
+
+    /// Delete an image from CloudKit
+    private func deleteImageFromCloudKit(_ image: JournalImageModel) async {
+        guard let recordName = image.cloudKitRecordName else {
+            return // Image was never synced
+        }
+
+        do {
+            let recordID = CKRecord.ID(recordName: recordName)
+            try await cloudKitManager.delete(recordID: recordID)
+            Log.info("Image deleted from CloudKit: \(image.id)", category: .cloudKit)
+        } catch {
+            Log.warning("Failed to delete image from CloudKit: \(error.localizedDescription)", category: .cloudKit)
         }
     }
 
@@ -469,12 +538,13 @@ final class JournalRepository {
         syncMonitor.beginSync()
 
         do {
-            let records = try await cloudKitManager.query(
+            // Fetch entries
+            let entryRecords = try await cloudKitManager.query(
                 recordType: Constants.iCloud.RecordTypes.journalEntry,
                 sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
             )
 
-            for record in records {
+            for record in entryRecords {
                 guard let remoteEntry = JournalEntryModel(from: record) else { continue }
 
                 // Check if entry already exists locally
@@ -506,15 +576,86 @@ final class JournalRepository {
             }
 
             try context.save()
+
+            // Now fetch and sync images
+            await pullImagesFromCloudKit()
+
             syncMonitor.endSync()
 
             // Refresh entries list
             _ = try await fetchEntries()
 
-            Log.info("Pulled \(records.count) entries from CloudKit", category: .cloudKit)
+            Log.info("Pulled \(entryRecords.count) entries from CloudKit", category: .cloudKit)
         } catch {
             syncMonitor.syncFailed(error: error)
             throw JournalRepositoryError.syncFailed(error)
+        }
+    }
+
+    /// Pull images from CloudKit and associate with entries
+    private func pullImagesFromCloudKit() async {
+        guard let context = modelContext else { return }
+
+        Log.info("Pulling images from CloudKit", category: .cloudKit)
+
+        do {
+            let imageRecords = try await cloudKitManager.query(
+                recordType: Constants.iCloud.RecordTypes.journalImage,
+                sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+            )
+
+            Log.debug("Found \(imageRecords.count) image records in CloudKit", category: .cloudKit)
+
+            for record in imageRecords {
+                // Check if image already exists locally
+                guard let idString = record.string(for: Constants.iCloud.RecordFields.JournalImage.id),
+                      let imageId = UUID(uuidString: idString) else {
+                    continue
+                }
+
+                let descriptor = FetchDescriptor<JournalImageModel>(
+                    predicate: #Predicate<JournalImageModel> { $0.id == imageId }
+                )
+
+                let existingImages = try context.fetch(descriptor)
+
+                if existingImages.first != nil {
+                    // Image already exists locally, skip
+                    continue
+                }
+
+                // Create new image from CloudKit record
+                guard let newImage = JournalImageModel(from: record) else {
+                    continue
+                }
+
+                // Load image data from asset
+                await newImage.loadImageData(from: record)
+
+                // Find parent entry and associate
+                if let entryIdString = record.string(for: Constants.iCloud.RecordFields.JournalImage.journalEntryId),
+                   let entryId = UUID(uuidString: entryIdString) {
+                    let entryDescriptor = FetchDescriptor<JournalEntryModel>(
+                        predicate: #Predicate<JournalEntryModel> { $0.id == entryId }
+                    )
+
+                    if let parentEntry = try context.fetch(entryDescriptor).first {
+                        newImage.journalEntry = parentEntry
+                        if parentEntry.images == nil {
+                            parentEntry.images = []
+                        }
+                        parentEntry.images?.append(newImage)
+                        context.insert(newImage)
+
+                        Log.debug("Pulled image \(imageId) for entry \(entryId)", category: .cloudKit)
+                    }
+                }
+            }
+
+            try context.save()
+            Log.info("Pulled \(imageRecords.count) images from CloudKit", category: .cloudKit)
+        } catch {
+            Log.error("Failed to pull images from CloudKit", error: error, category: .cloudKit)
         }
     }
 

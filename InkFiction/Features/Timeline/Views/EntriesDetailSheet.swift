@@ -31,7 +31,7 @@ struct EntriesDetailSheet: View {
 
                         // Visual memories section
                         if !periodGroup.imageContainers.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(spacing: 12) {
                                 HStack {
                                     Text("Visual Memories")
                                         .font(.system(size: 18, weight: .semibold))
@@ -57,6 +57,7 @@ struct EntriesDetailSheet: View {
                                     cards: periodGroup.imageContainers,
                                     maxVisibleCards: min(4, periodGroup.imageContainers.count)
                                 )
+                                .frame(maxWidth: .infinity)
                                 .frame(height: 450)
                                 .padding(.bottom, 8)
                             }

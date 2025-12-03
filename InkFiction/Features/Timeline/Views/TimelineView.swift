@@ -138,14 +138,31 @@ struct TimelineView: View {
         Log.debug("Starting image extraction from \(entries.count) total entries", category: .data)
 
         var imagesDict: [UUID: [UUID: UIImage]] = [:]
+        var totalImagesFound = 0
+        var totalImagesLoaded = 0
 
         for entry in entries {
-            if let images = entry.images, !images.isEmpty {
+            // Force access to images relationship to trigger SwiftData lazy loading
+            guard let images = entry.images else {
+                continue
+            }
+
+            // Count images found
+            totalImagesFound += images.count
+
+            if !images.isEmpty {
                 var entryImages: [UUID: UIImage] = [:]
                 for image in images {
-                    if let imageData = image.imageData,
-                       let uiImage = UIImage(data: imageData) {
-                        entryImages[image.id] = uiImage
+                    // Access imageData to ensure it's loaded from SwiftData
+                    if let imageData = image.imageData {
+                        if let uiImage = UIImage(data: imageData) {
+                            entryImages[image.id] = uiImage
+                            totalImagesLoaded += 1
+                        } else {
+                            Log.warning("Failed to create UIImage from data for image \(image.id)", category: .data)
+                        }
+                    } else {
+                        Log.warning("Image \(image.id) has nil imageData", category: .data)
                     }
                 }
                 if !entryImages.isEmpty {
@@ -155,7 +172,7 @@ struct TimelineView: View {
         }
 
         timelineImages = imagesDict
-        Log.debug("Extracted images from \(imagesDict.count) entries", category: .data)
+        Log.debug("Extracted \(totalImagesLoaded)/\(totalImagesFound) images from \(imagesDict.count) entries", category: .data)
     }
 }
 

@@ -574,3 +574,84 @@ extension AppSettingsModel: CloudKitRecordConvertible {
         )
     }
 }
+
+// MARK: - JournalImageModel CloudKit Conversion
+
+extension JournalImageModel {
+    static var recordType: String { Constants.iCloud.RecordTypes.journalImage }
+
+    /// Convert to CloudKit record with compressed image asset
+    /// - Parameter entryId: The parent journal entry ID for reference
+    /// - Returns: CKRecord with image asset, or nil if compression fails
+    func toRecord(entryId: UUID) -> CKRecord? {
+        let record = CKRecord(recordType: Self.recordType, uuid: id)
+
+        record[Constants.iCloud.RecordFields.JournalImage.id] = id.uuidString
+        record[Constants.iCloud.RecordFields.JournalImage.journalEntryId] = entryId.uuidString
+        record[Constants.iCloud.RecordFields.JournalImage.caption] = caption
+        record.setBool(isAIGenerated, for: Constants.iCloud.RecordFields.JournalImage.isAIGenerated)
+        record[Constants.iCloud.RecordFields.JournalImage.createdAt] = createdAt
+
+        // Set reference to parent journal entry
+        let entryRecordID = CKRecord.ID(uuid: entryId, recordType: Constants.iCloud.RecordTypes.journalEntry)
+        record.setReference(to: entryRecordID, for: Constants.iCloud.RecordFields.JournalImage.journalEntryId, action: .deleteSelf)
+
+        // Compress and add image asset
+        if let originalData = imageData {
+            // Use optimal compression based on image type
+            if let compressedData = ImageCompressionUtility.compressForCloudKit(
+                imageData: originalData,
+                isAIGenerated: isAIGenerated
+            ) {
+                do {
+                    let asset = try CKRecord.createAsset(from: compressedData)
+                    record[Constants.iCloud.RecordFields.JournalImage.imageAsset] = asset
+
+                    let ratio = ImageCompressionUtility.compressionRatio(original: originalData, compressed: compressedData)
+                    Log.debug("Image \(id) compressed for CloudKit: \(ImageCompressionUtility.formatBytes(originalData.count)) → \(ImageCompressionUtility.formatBytes(compressedData.count)) (ratio: \(String(format: "%.2f", ratio)))", category: .cloudKit)
+                } catch {
+                    Log.error("Failed to create CKAsset for image \(id)", error: error, category: .cloudKit)
+                    return nil
+                }
+            } else {
+                Log.warning("Failed to compress image \(id) for CloudKit", category: .cloudKit)
+                return nil
+            }
+        }
+
+        return record
+    }
+
+    /// Initialize from CloudKit record (without image data - loaded separately)
+    convenience init?(from record: CKRecord) {
+        guard record.recordType == Self.recordType,
+              let idString = record.string(for: Constants.iCloud.RecordFields.JournalImage.id),
+              let id = UUID(uuidString: idString) else {
+            return nil
+        }
+
+        self.init(
+            id: id,
+            imageData: nil, // Image data loaded separately via asset
+            caption: record.string(for: Constants.iCloud.RecordFields.JournalImage.caption),
+            isAIGenerated: record.bool(for: Constants.iCloud.RecordFields.JournalImage.isAIGenerated),
+            createdAt: record.date(for: Constants.iCloud.RecordFields.JournalImage.createdAt) ?? Date(),
+            cloudKitRecordName: record.recordID.recordName,
+            lastSyncedAt: Date(),
+            needsSync: false
+        )
+    }
+
+    /// Load image data from CloudKit record asset
+    /// Call this after initializing from record to populate imageData
+    func loadImageData(from record: CKRecord) async {
+        do {
+            if let data = try await record.assetData(for: Constants.iCloud.RecordFields.JournalImage.imageAsset) {
+                self.imageData = data
+                Log.debug("Loaded image data from CloudKit: \(ImageCompressionUtility.formatBytes(data.count))", category: .cloudKit)
+            }
+        } catch {
+            Log.error("Failed to load image data from CloudKit for image \(id)", error: error, category: .cloudKit)
+        }
+    }
+}
