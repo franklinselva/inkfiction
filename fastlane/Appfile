@@ -1,0 +1,14 @@
+# App identifier
+app_identifier("com.quantumtech.InkFiction")
+
+# Apple ID email (update with your email)
+# apple_id("your-apple-id@email.com")
+
+# Team ID from Apple Developer Portal
+team_id("2YDD7YA6GS")
+
+# App Store Connect Team ID (usually same as team_id for individual developers)
+itc_team_id("2YDD7YA6GS")
+
+# For more information about the Appfile, see:
+# https://docs.fastlane.tools/advanced/#appfile

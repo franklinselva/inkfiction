@@ -1,0 +1,92 @@
+# Xcode
+*.xcuserstate
+*.xcuserdatad/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xccheckout
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Swift Package Manager
+.build/
+Packages/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+fastlane/README.md
+
+# AppStore Connect API Key
+fastlane/*.json
+
+# Environment files
+.env
+.env.*
+*.env
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs
+build/
+*.app
+*.framework
+*.xcframework
+
+# Coverage
+*.gcno
+*.gcda
+*.gcov
+coverage/
+
+# Secrets (never commit these)
+Secrets.swift
+**/Secrets.swift
+*.p8
+*.p12
+*.mobileprovision
+*.provisionprofile
+
+# Archives
+*.xcarchive
+
+# Temporary files
+tmp/
+temp/
+*.tmp

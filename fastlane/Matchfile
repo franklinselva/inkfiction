@@ -1,0 +1,17 @@
+# Git repository to store certificates
+# git_url("git@github.com:your-org/certificates.git")
+
+# Default type
+type("development")
+
+# App identifier
+app_identifier(["com.quantumtech.InkFiction"])
+
+# Apple ID
+# username("your-apple-id@email.com")
+
+# Team ID
+team_id("2YDD7YA6GS")
+
+# For more information about Match, see:
+# https://docs.fastlane.tools/actions/match/
