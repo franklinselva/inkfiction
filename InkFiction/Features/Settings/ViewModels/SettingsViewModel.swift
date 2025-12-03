@@ -18,12 +18,20 @@ final class SettingsViewModel {
     var notificationsEnabled: Bool = false
     var biometricAuthEnabled: Bool = false
 
+    // Biometric
+    var isBiometricAvailable: Bool = false
+    var biometricType: BiometricType = .none
+    var isProcessingBiometric: Bool = false
+    var showBiometricAlert: Bool = false
+    var biometricAlertMessage: String?
+
     // Storage Statistics
     var storageStats: StorageStats = StorageStats()
     var isCalculatingStorage: Bool = false
     var isSyncing: Bool = false
 
     private var settingsRepository = SettingsRepository.shared
+    private let biometricService = BiometricService.shared
 
     // MARK: - Storage Stats
 
@@ -60,8 +68,86 @@ final class SettingsViewModel {
 
     func loadSettings() {
         notificationsEnabled = settingsRepository.currentSettings?.notificationsEnabled ?? false
-        // Biometric auth enabled can be loaded from UserDefaults or BiometricService
-        biometricAuthEnabled = BiometricService.shared.isEnabled
+        // Biometric
+        biometricType = biometricService.availableBiometricType()
+        isBiometricAvailable = biometricService.isBiometricAvailable()
+        biometricAuthEnabled = biometricService.isEnabled
+    }
+
+    // MARK: - Biometric
+
+    var biometricIconName: String {
+        switch biometricType {
+        case .faceID: return "faceid"
+        case .touchID: return "touchid"
+        case .none: return "lock.shield.fill"
+        }
+    }
+
+    var biometricDisplayName: String {
+        switch biometricType {
+        case .faceID: return "Face ID"
+        case .touchID: return "Touch ID"
+        case .none: return "Face ID / Touch ID"
+        }
+    }
+
+    func handleBiometricToggleChange(_ newValue: Bool) {
+        guard !isProcessingBiometric else { return }
+
+        Task {
+            await processBiometricToggleChange(to: newValue)
+        }
+    }
+
+    private func processBiometricToggleChange(to newValue: Bool) async {
+        guard newValue != biometricService.isEnabled else {
+            biometricAuthEnabled = biometricService.isEnabled
+            return
+        }
+
+        isProcessingBiometric = true
+        biometricAlertMessage = nil
+        showBiometricAlert = false
+
+        if newValue {
+            // Enabling biometric - verify user can authenticate
+            guard isBiometricAvailable else {
+                biometricAlertMessage = "Biometric authentication is not available."
+                showBiometricAlert = true
+                isProcessingBiometric = false
+                return
+            }
+
+            let result = await biometricService.authenticate(reason: "Enable \(biometricDisplayName)")
+
+            switch result {
+            case .success:
+                biometricService.isEnabled = true
+                biometricAuthEnabled = true
+            case .cancelled:
+                biometricAuthEnabled = false
+            case .failed(let error):
+                biometricAlertMessage = error.localizedDescription
+                showBiometricAlert = true
+                biometricAuthEnabled = false
+            case .notAvailable, .notEnrolled:
+                biometricAlertMessage = "Biometric authentication is not available on this device."
+                showBiometricAlert = true
+                biometricAuthEnabled = false
+            }
+        } else {
+            // Disabling biometric
+            biometricService.isEnabled = false
+            biometricAuthEnabled = false
+        }
+
+        isProcessingBiometric = false
+    }
+
+    func clearBiometricAlert() {
+        biometricAlertMessage = nil
+        showBiometricAlert = false
     }
 
     func getStorageUsage() -> String {

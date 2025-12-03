@@ -32,14 +32,11 @@ struct SettingsView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
-                        // Account Section
-                        accountSection
+                        // General Section (Account + Appearance)
+                        generalSection
 
                         // Subscription Section
                         subscriptionSection
-
-                        // Appearance Section
-                        appearanceSection
 
                         // Settings Section with navigation links
                         settingsSection
@@ -69,46 +66,91 @@ struct SettingsView: View {
                 await viewModel.calculateStorageUsage()
             }
         }
+        .alert("Authentication", isPresented: $viewModel.showBiometricAlert) {
+            Button("OK", role: .cancel) {
+                viewModel.clearBiometricAlert()
+            }
+        } message: {
+            Text(viewModel.biometricAlertMessage ?? "An error occurred.")
+        }
     }
 
-    // MARK: - Account Section
+    // MARK: - General Section (Account + Appearance)
 
-    private var accountSection: some View {
+    private var generalSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Account")
+            Text("General")
                 .font(.headline)
                 .foregroundColor(themeManager.currentTheme.textPrimaryColor)
                 .padding(.horizontal, 4)
 
-            Button {
-                router.push(.settingsSection(section: .account))
-            } label: {
-                HStack(spacing: 12) {
-                    // Account icon
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(themeManager.currentTheme.accentColor)
-                        .frame(width: 32)
+            VStack(spacing: 0) {
+                // Journal Preferences
+                Button {
+                    router.push(.settingsSection(section: .account))
+                } label: {
+                    HStack(spacing: 12) {
+                        // Account icon
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(themeManager.currentTheme.accentColor)
+                            .frame(width: 32)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Preferences & Companion")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Journal Preferences")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
 
-                        Text("Journal style, mood, visuals, AI companion")
+                            Text("Journal style, mood, visuals, AI companion")
+                                .font(.caption)
+                                .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundColor(themeManager.currentTheme.textSecondaryColor)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    .padding()
                 }
-                .padding()
-                .gradientCard()
+
+                Divider()
+                    .background(themeManager.currentTheme.textSecondaryColor.opacity(0.2))
+
+                // Theme
+                Button {
+                    router.push(.settingsSection(section: .theme))
+                } label: {
+                    HStack {
+                        SettingsRowLabel(
+                            icon: "paintbrush.fill",
+                            title: "Theme",
+                            color: .purple
+                        )
+
+                        Spacer()
+
+                        HStack(spacing: 4) {
+                            ForEach(themeManager.currentTheme.gradientColors.prefix(3), id: \.self) { color in
+                                Circle()
+                                    .fill(color)
+                                    .frame(width: 16, height: 16)
+                            }
+                        }
+
+                        Text(themeManager.currentTheme.type.rawValue)
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    }
+                    .padding()
+                }
             }
+            .gradientCard()
         }
     }
 
@@ -187,49 +229,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Appearance Section
-
-    private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Appearance")
-                .font(.headline)
-                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-                .padding(.horizontal, 4)
-
-            Button {
-                router.push(.settingsSection(section: .theme))
-            } label: {
-                HStack {
-                    SettingsRowLabel(
-                        icon: "paintbrush.fill",
-                        title: "Theme",
-                        color: .purple
-                    )
-
-                    Spacer()
-
-                    HStack(spacing: 4) {
-                        ForEach(themeManager.currentTheme.gradientColors.prefix(3), id: \.self) { color in
-                            Circle()
-                                .fill(color)
-                                .frame(width: 16, height: 16)
-                        }
-                    }
-
-                    Text(themeManager.currentTheme.type.rawValue)
-                        .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                }
-                .padding()
-                .gradientCard()
-            }
-        }
-    }
-
     // MARK: - Settings Section
 
     private var settingsSection: some View {
@@ -268,33 +267,56 @@ struct SettingsView: View {
                 Divider()
                     .background(themeManager.currentTheme.textSecondaryColor.opacity(0.2))
 
-                // Security & Privacy
-                Button {
-                    router.push(.settingsSection(section: .security))
-                } label: {
-                    HStack {
-                        SettingsRowLabel(
-                            icon: "lock.shield.fill",
-                            title: "Security & Privacy",
-                            color: .green
+                // Biometric Authentication Toggle
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle(
+                        isOn: Binding(
+                            get: { viewModel.biometricAuthEnabled },
+                            set: { viewModel.handleBiometricToggleChange($0) }
                         )
-                        Spacer()
+                    ) {
+                        HStack(spacing: 12) {
+                            Image(systemName: viewModel.biometricIconName)
+                                .font(.system(size: 18))
+                                .foregroundColor(.green)
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color.green.opacity(0.15))
+                                )
 
-                        // Show status indicators
-                        HStack(spacing: 8) {
-                            if viewModel.biometricAuthEnabled {
-                                Image(systemName: "faceid")
-                                    .font(.caption)
-                                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                            }
+                            Text(viewModel.biometricDisplayName)
+                                .font(.body)
+                                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
                         }
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
                     }
-                    .padding()
+                    .tint(themeManager.currentTheme.accentColor)
+                    .disabled(!viewModel.isBiometricAvailable || viewModel.isProcessingBiometric)
+
+                    // Helper text
+                    if !viewModel.isBiometricAvailable {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                            Text("Biometric authentication is not available on this device")
+                                .font(.caption)
+                                .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                        }
+                        .padding(.leading, 40)
+                    } else if viewModel.biometricAuthEnabled {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.shield.fill")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                            Text("You'll be asked to authenticate when opening the app")
+                                .font(.caption)
+                                .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                        }
+                        .padding(.leading, 40)
+                    }
                 }
+                .padding()
 
                 Divider()
                     .background(themeManager.currentTheme.textSecondaryColor.opacity(0.2))

@@ -31,7 +31,7 @@ struct JournalEditorView: View {
 
     var body: some View {
         ZStack {
-            themeManager.currentTheme.backgroundColor
+            AnimatedGradientBackground()
                 .ignoresSafeArea()
 
             if let viewModel = viewModel {

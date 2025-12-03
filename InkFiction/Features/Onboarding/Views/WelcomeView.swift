@@ -35,7 +35,7 @@ struct WelcomeView: View {
     var body: some View {
         ZStack {
             // Theme-aware background
-            themeManager.currentTheme.backgroundColor
+            AnimatedGradientBackground()
                 .ignoresSafeArea()
 
             VStack(alignment: .center, spacing: 0) {

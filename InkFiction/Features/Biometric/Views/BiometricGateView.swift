@@ -41,7 +41,10 @@ struct BiometricGateView: View {
         }
         .padding(.horizontal, 40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background {
+            AnimatedGradientBackground()
+                .ignoresSafeArea()
+        }
         .task {
             await authenticateOnAppear()
         }

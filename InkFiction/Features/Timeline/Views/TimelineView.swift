@@ -61,7 +61,7 @@ struct TimelineView: View {
 
     var body: some View {
         ZStack {
-            themeManager.currentTheme.backgroundColor
+            AnimatedGradientBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {

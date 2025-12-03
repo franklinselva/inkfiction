@@ -23,13 +23,9 @@ struct PaywallView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Theme-based background
-                themeManager.currentTheme.backgroundColor
-                    .ignoresSafeArea()
-
+                // Theme-based animated gradient background
                 AnimatedGradientBackground()
                     .ignoresSafeArea()
-                    .opacity(0.3)
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 32) {

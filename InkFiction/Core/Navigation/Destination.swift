@@ -59,7 +59,6 @@ enum SettingsSection: String, Hashable {
     case account
     case notifications
     case theme
-    case security
     case dataStorage
     case aiFeatures
     case subscription

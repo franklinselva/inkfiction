@@ -250,6 +250,11 @@ struct MainTabView: View {
             Text("Edit Persona")
         case .avatarGeneration(let style):
             Text("Generate Avatar: \(style?.displayName ?? "Select Style")")
+        case .subscription:
+            SubscriptionStatusView()
+        case .paywall:
+            PaywallView(context: .manualOpen)
+                .environment(\.themeManager, themeManager)
         default:
             Text("Unknown destination")
         }
@@ -264,15 +269,12 @@ struct MainTabView: View {
             NotificationsView()
         case .theme:
             ThemeView()
-        case .security:
-            SecurityAndPrivacyView()
         case .dataStorage:
             DataStorageView()
         case .about:
             AboutView()
         case .subscription:
-            PaywallView(context: .manualOpen)
-                .environment(\.themeManager, themeManager)
+            SubscriptionStatusView()
         case .aiFeatures:
             Text("AI Features - Coming Soon")
         case .export:

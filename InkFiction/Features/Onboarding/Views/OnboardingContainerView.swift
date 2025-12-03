@@ -50,7 +50,7 @@ struct OnboardingContainerView: View {
     var body: some View {
         ZStack {
             // Theme-aware background
-            themeManager.currentTheme.backgroundColor
+            AnimatedGradientBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {

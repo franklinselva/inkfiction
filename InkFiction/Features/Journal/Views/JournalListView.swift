@@ -21,7 +21,7 @@ struct JournalListView: View {
     var body: some View {
         ZStack {
             // Background
-            themeManager.currentTheme.backgroundColor
+            AnimatedGradientBackground()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {

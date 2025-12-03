@@ -25,7 +25,7 @@ struct CompanionPickerView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                themeManager.currentTheme.backgroundColor
+                AnimatedGradientBackground()
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
