@@ -205,7 +205,7 @@ struct MainTabView: View {
                     handleScrollChange(newValue)
                 }
         case .settings:
-            SettingsPlaceholderView()
+            SettingsView()
                 .onScrollGeometryChange(for: CGFloat.self) { geometry in
                     geometry.contentOffset.y
                 } action: { _, newValue in
@@ -243,7 +243,7 @@ struct MainTabView: View {
         case .insightDetail(let type):
             Text("Insight: \(type.rawValue)")
         case .settingsSection(let section):
-            Text("Settings: \(section.rawValue)")
+            settingsDestinationView(for: section)
         case .persona:
             Text("Persona Detail")
         case .personaEdit:
@@ -252,6 +252,31 @@ struct MainTabView: View {
             Text("Generate Avatar: \(style?.displayName ?? "Select Style")")
         default:
             Text("Unknown destination")
+        }
+    }
+
+    @ViewBuilder
+    private func settingsDestinationView(for section: SettingsSection) -> some View {
+        switch section {
+        case .account:
+            AccountView()
+        case .notifications:
+            NotificationsView()
+        case .theme:
+            ThemeView()
+        case .security:
+            SecurityAndPrivacyView()
+        case .dataStorage:
+            DataStorageView()
+        case .about:
+            AboutView()
+        case .subscription:
+            PaywallView(context: .manualOpen)
+                .environment(\.themeManager, themeManager)
+        case .aiFeatures:
+            Text("AI Features - Coming Soon")
+        case .export:
+            Text("Export - Coming Soon")
         }
     }
 
@@ -377,210 +402,7 @@ struct TimelinePlaceholderView: View {
 }
 
 // ReflectPlaceholderView removed - now using ReflectView
-
-struct SettingsPlaceholderView: View {
-    @Environment(AppState.self) private var appState
-    @Environment(Router.self) private var router
-    @Environment(\.themeManager) private var themeManager
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Subscription Section
-                subscriptionSection
-
-                // Theme Selection
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Theme")
-                        .font(.headline)
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
-                        ForEach(ThemeType.allCases, id: \.rawValue) { type in
-                            ThemePreviewButton(
-                                type: type,
-                                isSelected: themeManager.currentTheme.type == type
-                            ) {
-                                themeManager.setTheme(type)
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .background(themeManager.currentTheme.surfaceColor)
-                .cornerRadius(16)
-
-                // Debug Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Debug")
-                        .font(.headline)
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                    Button("Reset Onboarding") {
-                        appState.hasCompletedOnboarding = false
-                    }
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-
-                    Button("Lock App") {
-                        appState.lock()
-                    }
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-
-                    #if DEBUG
-                    Button("Reset Subscription") {
-                        StoreKitManager.shared.resetToFreeTier()
-                    }
-                    .foregroundColor(.orange)
-
-                    Button("Reset Paywall Tracking") {
-                        PaywallDisplayManager.shared.resetForTesting()
-                    }
-                    .foregroundColor(.orange)
-                    #endif
-                }
-                .padding()
-                .background(themeManager.currentTheme.surfaceColor)
-                .cornerRadius(16)
-
-                Spacer()
-                    .frame(height: 100)
-            }
-            .padding(.horizontal)
-            .padding(.top, 20)
-        }
-        .background(themeManager.currentTheme.backgroundColor)
-        .navigationTitle("Settings")
-    }
-
-    // MARK: - Subscription Section
-
-    private var subscriptionSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Subscription")
-                .font(.headline)
-                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-            // Current tier display
-            HStack(spacing: 12) {
-                Image(systemName: StoreKitManager.shared.subscriptionTier.badgeIcon)
-                    .font(.title2)
-                    .foregroundStyle(StoreKitManager.shared.subscriptionTier.gradient())
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(StoreKitManager.shared.subscriptionTier.displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                    if let expiresAt = StoreKitManager.shared.subscriptionExpiresAt {
-                        Text("Renews \(expiresAt.formatted(date: .abbreviated, time: .omitted))")
-                            .font(.caption)
-                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                    } else if StoreKitManager.shared.subscriptionTier == .free {
-                        Text("Upgrade for more features")
-                            .font(.caption)
-                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                    }
-                }
-
-                Spacer()
-
-                if StoreKitManager.shared.subscriptionTier == .free {
-                    Button {
-                        router.presentedSheet = .paywall
-                    } label: {
-                        Text("Upgrade")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: themeManager.currentTheme.gradientColors,
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                            )
-                    }
-                }
-            }
-
-            // Usage stats
-            if StoreKitManager.shared.subscriptionTier != .free {
-                Divider()
-                    .background(themeManager.currentTheme.textSecondaryColor.opacity(0.2))
-
-                Text(SubscriptionService.shared.getJournalImageUsageText())
-                    .font(.caption)
-                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-            }
-
-            // Restore purchases
-            RestorePurchasesButton(
-                isProcessing: false,
-                onRestore: {
-                    Task {
-                        try? await SubscriptionService.shared.restorePurchases()
-                    }
-                },
-                style: .card
-            )
-        }
-        .padding()
-        .background(themeManager.currentTheme.surfaceColor)
-        .cornerRadius(16)
-    }
-}
-
-// MARK: - Theme Preview Button
-
-struct ThemePreviewButton: View {
-    let type: ThemeType
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                let theme = Theme.theme(for: type)
-
-                // Theme preview circle
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: theme.gradientColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Circle()
-                            .strokeBorder(
-                                isSelected ? Color.white : Color.clear,
-                                lineWidth: 3
-                            )
-                    )
-                    .shadow(
-                        color: isSelected ? theme.accentColor.opacity(0.5) : .clear,
-                        radius: 8
-                    )
-
-                Text(type.displayName)
-                    .font(.caption)
-                    .foregroundColor(isSelected ? theme.accentColor : .secondary)
-            }
-            .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
-    }
-}
+// SettingsPlaceholderView removed - now using SettingsView
 
 // MARK: - Preview
 

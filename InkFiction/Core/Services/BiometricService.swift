@@ -97,9 +97,20 @@ enum BiometricError: Error, Equatable {
 /// Service for handling biometric authentication (Face ID / Touch ID)
 final class BiometricService {
 
+    // MARK: - Singleton
+
+    static let shared = BiometricService()
+
     // MARK: - Properties
 
     private let context: LAContext
+    private static let enabledKey = "com.inkfiction.biometricEnabled"
+
+    /// Whether biometric authentication is enabled by the user
+    var isEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.enabledKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.enabledKey) }
+    }
 
     // MARK: - Initialization
 
