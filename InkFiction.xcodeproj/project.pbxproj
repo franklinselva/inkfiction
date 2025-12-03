@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		493AE3382EE0DDF2004A2D81 /* Orb in Frameworks */ = {isa = PBXBuildFile; productRef = 493AE3372EE0DDF2004A2D81 /* Orb */; };
+		493AE33B2EE0DE08004A2D81 /* Liquid in Frameworks */ = {isa = PBXBuildFile; productRef = 493AE33A2EE0DE08004A2D81 /* Liquid */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		493AE1872EE0AF37004A2D81 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				493AE33B2EE0DE08004A2D81 /* Liquid in Frameworks */,
+				493AE3382EE0DDF2004A2D81 /* Orb in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +132,8 @@
 			);
 			name = InkFiction;
 			packageProductDependencies = (
+				493AE3372EE0DDF2004A2D81 /* Orb */,
+				493AE33A2EE0DE08004A2D81 /* Liquid */,
 			);
 			productName = InkFiction;
 			productReference = 493AE1752EE0AF35004A2D81 /* InkFiction.app */;
@@ -208,6 +217,10 @@
 			);
 			mainGroup = 493AE16C2EE0AF35004A2D81;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				493AE3362EE0DDF2004A2D81 /* XCRemoteSwiftPackageReference "Orb" */,
+				493AE3392EE0DE08004A2D81 /* XCRemoteSwiftPackageReference "liquid" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 493AE1762EE0AF35004A2D81 /* Products */;
 			projectDirPath = "";
@@ -603,6 +616,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		493AE3362EE0DDF2004A2D81 /* XCRemoteSwiftPackageReference "Orb" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/metasidd/Orb";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.0;
+			};
+		};
+		493AE3392EE0DE08004A2D81 /* XCRemoteSwiftPackageReference "liquid" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/maustinstar/liquid";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		493AE3372EE0DDF2004A2D81 /* Orb */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 493AE3362EE0DDF2004A2D81 /* XCRemoteSwiftPackageReference "Orb" */;
+			productName = Orb;
+		};
+		493AE33A2EE0DE08004A2D81 /* Liquid */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 493AE3392EE0DE08004A2D81 /* XCRemoteSwiftPackageReference "liquid" */;
+			productName = Liquid;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 493AE16D2EE0AF35004A2D81 /* Project object */;
 }

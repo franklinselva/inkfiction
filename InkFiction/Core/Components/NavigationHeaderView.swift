@@ -19,6 +19,8 @@ struct NavigationHeaderConfig {
 
     enum RightButtonType {
         case icon(String, action: () -> Void)
+        case toggle(String, isOn: Binding<Bool>)
+        case menu(String, menu: () -> AnyView)
         case none
     }
 
@@ -204,8 +206,69 @@ struct NavigationHeaderView: View {
         switch config.rightButton {
         case .icon(let iconName, let action):
             iconButton(systemName: iconName, action: action)
+
+        case .toggle(let iconName, let isOn):
+            toggleButton(iconName: iconName, isOn: isOn)
+
+        case .menu(let iconName, let menu):
+            Menu {
+                menu()
+            } label: {
+                menuButtonLabel(systemName: iconName)
+            }
+
         case .none:
             Color.clear.frame(width: 44, height: 44)
+        }
+    }
+
+    private func toggleButton(iconName: String, isOn: Binding<Bool>) -> some View {
+        Button(action: { isOn.wrappedValue.toggle() }) {
+            ZStack {
+                Circle()
+                    .fill(
+                        isOn.wrappedValue
+                            ? themeManager.currentTheme.accentColor.opacity(0.15)
+                            : themeManager.currentTheme.surfaceColor
+                    )
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: isOn.wrappedValue ? "\(iconName).fill" : iconName)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(
+                        isOn.wrappedValue
+                            ? themeManager.currentTheme.accentColor
+                            : themeManager.currentTheme.textPrimaryColor
+                    )
+
+                Circle()
+                    .stroke(
+                        isOn.wrappedValue
+                            ? themeManager.currentTheme.accentColor.opacity(0.3)
+                            : themeManager.currentTheme.strokeColor.opacity(0.3),
+                        lineWidth: 1.5
+                    )
+                    .frame(width: 44, height: 44)
+            }
+        }
+    }
+
+    private func menuButtonLabel(systemName: String) -> some View {
+        ZStack {
+            Circle()
+                .fill(themeManager.currentTheme.surfaceColor)
+                .frame(width: 44, height: 44)
+
+            Image(systemName: systemName)
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+
+            Circle()
+                .stroke(
+                    themeManager.currentTheme.strokeColor.opacity(0.3),
+                    lineWidth: 1.5
+                )
+                .frame(width: 44, height: 44)
         }
     }
 

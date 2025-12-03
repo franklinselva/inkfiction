@@ -16,6 +16,8 @@ enum LogCategory: String, CaseIterable {
     case persona = "Persona"
     case journal = "Journal"
     case settings = "Settings"
+    case analytics = "Analytics"
+    case moodAnalysis = "MoodAnalysis"
 
     var subsystem: String {
         "com.quantumtech.InkFiction.\(rawValue)"

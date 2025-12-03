@@ -169,10 +169,8 @@ struct MainTabView: View {
                     handleScrollChange(newValue)
                 }
         case .reflect:
-            ReflectPlaceholderView()
-                .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.contentOffset.y
-                } action: { _, newValue in
+            ReflectView(scrollOffset: $scrollOffset)
+                .onChange(of: scrollOffset) { _, newValue in
                     handleScrollChange(newValue)
                 }
         case .settings:
@@ -347,49 +345,7 @@ struct TimelinePlaceholderView: View {
     }
 }
 
-struct ReflectPlaceholderView: View {
-    @Environment(\.themeManager) private var themeManager
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Spacer()
-                    .frame(height: 40)
-
-                Image(systemName: "rainbow")
-                    .font(.system(size: 60))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: themeManager.currentTheme.gradientColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-
-                Text("Reflect")
-                    .font(.largeTitle.bold())
-                    .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                Text("AI reflections coming soon")
-                    .foregroundStyle(themeManager.currentTheme.textSecondaryColor)
-
-                // Placeholder for scroll
-                ForEach(0..<6, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(themeManager.currentTheme.surfaceColor)
-                        .frame(height: 150)
-                        .overlay(
-                            Text("Reflection \(index + 1)")
-                                .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                        )
-                }
-            }
-            .padding(.horizontal)
-        }
-        .background(themeManager.currentTheme.backgroundColor)
-        .navigationTitle("Reflect")
-    }
-}
+// ReflectPlaceholderView removed - now using ReflectView
 
 struct SettingsPlaceholderView: View {
     @Environment(AppState.self) private var appState
