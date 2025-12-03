@@ -32,40 +32,7 @@ struct RootView: View {
 
 // MARK: - Placeholder Views (to be replaced in later phases)
 
-struct BiometricGateView: View {
-    @Environment(AppState.self) private var appState
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "faceid")
-                .font(.system(size: 64))
-                .foregroundStyle(.blue)
-
-            Text("InkFiction")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-
-            Text("Unlock with Face ID")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Button {
-                // TODO: Implement actual biometric auth in Phase 2
-                appState.unlock()
-            } label: {
-                Label("Unlock", systemImage: "faceid")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.blue)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cornerRadius))
-            }
-            .padding(.horizontal, 40)
-        }
-        .padding()
-    }
-}
+// BiometricGateView is now implemented in Features/Biometric/Views/BiometricGateView.swift
 
 struct OnboardingPlaceholderView: View {
     @Environment(AppState.self) private var appState
