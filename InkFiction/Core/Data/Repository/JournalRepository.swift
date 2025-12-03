@@ -110,22 +110,95 @@ final class JournalRepository {
     private(set) var isLoading: Bool = false
     private(set) var error: JournalRepositoryError?
 
+    // MARK: - Cache State
+
+    /// Whether entries have been loaded into memory (avoids redundant fetches)
+    private(set) var isLoaded: Bool = false
+
     // MARK: - Dependencies
 
     private var modelContext: ModelContext?
     private let cloudKitManager = CloudKitManager.shared
     private let syncMonitor = SyncMonitor.shared
+    private var networkObserver: Any?
 
     // MARK: - Initialization
 
     private init() {
         Log.info("JournalRepository initialized", category: .journal)
+        setupNetworkObserver()
+    }
+
+    /// Listen for network availability to sync pending entries
+    private func setupNetworkObserver() {
+        networkObserver = NotificationCenter.default.addObserver(
+            forName: .syncNetworkBecameAvailable,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.syncPendingEntries()
+            }
+        }
     }
 
     /// Set the model context for SwiftData operations
     func setModelContext(_ context: ModelContext) {
         self.modelContext = context
         Log.debug("Model context set for JournalRepository", category: .journal)
+    }
+
+    // MARK: - Warm-up
+
+    /// Warm up the repository by preloading entries into memory
+    /// - Parameter limit: Maximum number of entries to preload (default 50)
+    /// - Parameter forceRefresh: Force refresh even if already loaded
+    /// - Returns: The number of entries loaded
+    func warmup(limit: Int = 50, forceRefresh: Bool = false) async throws -> Int {
+        // Skip if already loaded and not forcing refresh
+        if isLoaded && !forceRefresh && !entries.isEmpty {
+            Log.debug("JournalRepository already loaded, skipping warmup", category: .journal)
+            return entries.count
+        }
+
+        guard let context = modelContext else {
+            throw JournalRepositoryError.modelContextNotAvailable
+        }
+
+        Log.info("Warming up JournalRepository with limit: \(limit)", category: .journal)
+
+        isLoading = true
+        defer { isLoading = false }
+
+        // Build fetch descriptor with limit
+        var descriptor = FetchDescriptor<JournalEntryModel>(
+            predicate: #Predicate<JournalEntryModel> { $0.isArchived == false },
+            sortBy: [SortDescriptor(\JournalEntryModel.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = limit
+
+        do {
+            let results = try context.fetch(descriptor)
+
+            // Only load images relationship count (lazy load actual image data on demand)
+            for entry in results {
+                _ = entry.images?.count
+            }
+
+            entries = results
+            isLoaded = true
+            Log.info("JournalRepository warmed up with \(results.count) entries", category: .journal)
+            return results.count
+        } catch {
+            Log.error("Failed to warm up JournalRepository", error: error, category: .journal)
+            throw JournalRepositoryError.saveFailed(error)
+        }
+    }
+
+    /// Invalidate cache (call after CRUD operations)
+    func invalidateCache() {
+        isLoaded = false
+        Log.debug("JournalRepository cache invalidated", category: .journal)
     }
 
     // MARK: - CRUD Operations

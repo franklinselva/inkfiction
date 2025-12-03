@@ -6,6 +6,17 @@ import SwiftUI
 @Observable
 final class AppState {
 
+    // MARK: - Launch State
+
+    /// Whether the splash screen has finished displaying
+    var hasSplashFinished: Bool = false
+
+    /// Current warm-up phase
+    var warmupPhase: WarmupPhase = .initializing
+
+    /// Progress of warm-up (0.0 - 1.0)
+    var warmupProgress: Double { warmupPhase.progress }
+
     // MARK: - Authentication State
 
     /// Whether the user has passed biometric authentication
@@ -43,6 +54,12 @@ final class AppState {
 
     // MARK: - Methods
 
+    /// Mark splash screen as finished
+    func finishSplash() {
+        Log.info("Splash screen finished", category: .app)
+        hasSplashFinished = true
+    }
+
     /// Lock the app (require biometric auth)
     func lock() {
         Log.info("App locked", category: .app)
@@ -64,6 +81,8 @@ final class AppState {
     /// Reset app state (for testing/debugging)
     func reset() {
         Log.warning("Resetting app state", category: .app)
+        hasSplashFinished = false
+        warmupPhase = .initializing
         isUnlocked = false
         hasCompletedOnboarding = false
         syncStatus = .idle

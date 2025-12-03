@@ -64,34 +64,44 @@ struct InkFictionApp: App {
         // Get the model context from the container
         let context = sharedModelContainer.mainContext
 
-        // Initialize repositories with model context
-        JournalRepository.shared.setModelContext(context)
-        PersonaRepository.shared.setModelContext(context)
-        SettingsRepository.shared.setModelContext(context)
+        // Configure warm-up service
+        let warmupService = AppWarmupService.shared
+        warmupService.configure(modelContext: context, themeManager: themeManager)
 
-        // Check iCloud account status
-        await CloudKitManager.shared.checkAccountStatus()
+        // Perform warm-up and track phases via AppState
+        let result = await performWarmupWithTracking(warmupService)
 
-        // Load sync monitor's last sync date
-        SyncMonitor.shared.loadLastSyncDate()
+        // Update app state based on warm-up result
+        appState.hasCompletedOnboarding = result.hasCompletedOnboarding
 
-        // Warmup settings
-        await SettingsRepository.shared.warmup()
-
-        // Load theme from settings
-        await themeManager.loadThemeFromRepository()
-
-        // Load persona if exists (for later use in app)
-        do {
-            try await PersonaRepository.shared.loadPersona()
-        } catch {
-            Log.error("Failed to load persona", error: error, category: .persona)
+        // Mark splash as finished
+        withAnimation(.easeInOut(duration: 0.5)) {
+            appState.finishSplash()
         }
 
-        // Update onboarding status
-        appState.hasCompletedOnboarding = SettingsRepository.shared.hasCompletedOnboarding
-
         Log.info("App initialization complete", category: .app)
+    }
+
+    /// Perform warm-up while tracking phases in AppState
+    @MainActor
+    private func performWarmupWithTracking(_ warmupService: AppWarmupService) async -> WarmupResult {
+        // Start a background task to track warm-up phases
+        let trackingTask = Task { @MainActor in
+            // Continuously update appState with warm-up phase
+            while !warmupService.isComplete {
+                appState.warmupPhase = warmupService.currentPhase
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            appState.warmupPhase = warmupService.currentPhase
+        }
+
+        // Perform the warm-up
+        let result = await warmupService.performWarmup()
+
+        // Ensure tracking task completes
+        trackingTask.cancel()
+
+        return result
     }
 
     // MARK: - App Lifecycle

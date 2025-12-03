@@ -15,9 +15,14 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(Router.self) private var router
 
+    @State private var isSplashAnimating = true
+
     var body: some View {
         Group {
-            if !appState.isUnlocked {
+            if !appState.hasSplashFinished {
+                // Splash screen with warm-up progress
+                SplashView(isAnimating: $isSplashAnimating)
+            } else if !appState.isUnlocked {
                 // Biometric gate
                 BiometricGateView()
             } else if !appState.hasCompletedOnboarding {
@@ -31,6 +36,7 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
             appState.completeOnboarding()
         }
+        .animation(.easeInOut(duration: 0.3), value: appState.hasSplashFinished)
         .animation(.easeInOut(duration: 0.3), value: appState.isUnlocked)
         .animation(.easeInOut(duration: 0.3), value: appState.hasCompletedOnboarding)
     }

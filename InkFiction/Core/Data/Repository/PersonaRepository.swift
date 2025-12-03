@@ -64,22 +64,97 @@ final class PersonaRepository {
     /// Error state
     private(set) var error: PersonaRepositoryError?
 
+    // MARK: - Cache State
+
+    /// Whether persona has been loaded into memory (avoids redundant fetches)
+    private(set) var isLoaded: Bool = false
+
     // MARK: - Dependencies
 
     private var modelContext: ModelContext?
     private let cloudKitManager = CloudKitManager.shared
     private let syncMonitor = SyncMonitor.shared
+    private var networkObserver: Any?
 
     // MARK: - Initialization
 
     private init() {
         Log.info("PersonaRepository initialized", category: .persona)
+        setupNetworkObserver()
+    }
+
+    /// Listen for network availability to sync pending persona data
+    private func setupNetworkObserver() {
+        networkObserver = NotificationCenter.default.addObserver(
+            forName: .syncNetworkBecameAvailable,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.performFullSync()
+            }
+        }
     }
 
     /// Set the model context for SwiftData operations
     func setModelContext(_ context: ModelContext) {
         self.modelContext = context
         Log.debug("Model context set for PersonaRepository", category: .persona)
+    }
+
+    // MARK: - Warm-up
+
+    /// Warm up the repository by preloading persona into memory
+    /// - Parameter forceRefresh: Force refresh even if already loaded
+    func warmup(forceRefresh: Bool = false) async throws {
+        // Skip if already loaded and not forcing refresh
+        if isLoaded && !forceRefresh && currentPersona != nil {
+            Log.debug("PersonaRepository already loaded, skipping warmup", category: .persona)
+            return
+        }
+
+        guard let context = modelContext else {
+            throw PersonaRepositoryError.modelContextNotAvailable
+        }
+
+        Log.info("Warming up PersonaRepository", category: .persona)
+
+        isLoading = true
+        defer { isLoading = false }
+
+        let descriptor = FetchDescriptor<PersonaProfileModel>()
+
+        do {
+            let personas = try context.fetch(descriptor)
+            currentPersona = personas.first
+
+            // Only load active avatar image data (lazy load others on demand)
+            if let persona = currentPersona {
+                // Load avatars count but not all image data
+                let avatarCount = persona.avatars?.count ?? 0
+
+                // Only load the active avatar's image data
+                if let activeAvatarId = persona.activeAvatarId,
+                   let activeAvatar = persona.avatars?.first(where: { $0.id == activeAvatarId }) {
+                    _ = activeAvatar.imageData
+                }
+
+                Log.info("PersonaRepository warmed up with persona '\(persona.name)' and \(avatarCount) avatars", category: .persona)
+            } else {
+                Log.info("PersonaRepository warmed up - no persona found", category: .persona)
+            }
+
+            isLoaded = true
+        } catch {
+            Log.error("Failed to warm up PersonaRepository", error: error, category: .persona)
+            throw PersonaRepositoryError.saveFailed(error)
+        }
+    }
+
+    /// Invalidate cache (call after CRUD operations)
+    func invalidateCache() {
+        isLoaded = false
+        Log.debug("PersonaRepository cache invalidated", category: .persona)
     }
 
     // MARK: - Persona CRUD
