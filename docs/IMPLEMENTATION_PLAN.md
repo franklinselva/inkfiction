@@ -426,75 +426,129 @@ InkFiction/
 
 ---
 
-## Phase 3: Onboarding Flow
+## Phase 3: Onboarding Flow ✅ COMPLETED
 
 **Priority:** High
+**Status:** ✅ Completed on 2025-12-03
 **Description:** First-time user experience without account creation.
 
 ### Checklist
 
-#### 3.1 Onboarding Models
-- [ ] Create `Features/Onboarding/Models/OnboardingStep.swift`
-  ```swift
-  enum OnboardingStep: Int, CaseIterable {
-      case welcome
-      case personalityQuiz
-      case permissions
-      case complete
-  }
-  ```
-- [ ] Create `Features/Onboarding/Models/OnboardingState.swift`
-  - [ ] Current step tracking
-  - [ ] Quiz answers
-  - [ ] Permissions granted
+#### 3.1 Onboarding Models ✅
+- [x] Create `Features/Onboarding/Models/OnboardingState.swift`
+  - [x] `OnboardingStep` enum (welcome, quiz, companionSelection, permissions)
+  - [x] `QuizAnswer` struct for tracking quiz responses
+  - [x] `OnboardingState` struct with current step, quiz answers, selected companion
+  - [x] `SavedOnboardingData` for persistence
+- [x] Create `Features/Onboarding/Models/PersonalityProfile.swift`
+  - [x] `JournalingStyle` enum (quickNotes, detailedStories, visualSketches, mixedMedia)
+  - [x] `EmotionalExpression` enum (writingFreely, structuredPrompts, moodTracking, creativeExploration)
+  - [x] `VisualPreference` enum (abstractDreamy, realisticGrounded, minimalistClean, vibrantExpressive)
+  - [x] `PersonalityProfile` with `suggestedCompanions()` method
+- [x] Create `Features/Onboarding/Models/AICompanion.swift`
+  - [x] 4 predefined companions: Poet, Sage, Dreamer, Realist
+  - [x] Companion with id, name, tagline, description, personality traits, gradient colors
+- [x] Create `Features/Onboarding/Models/Permission.swift`
+  - [x] Permissions enum (notifications, photoLibrary, biometric)
+  - [x] Benefits list for each permission
 
-#### 3.2 Onboarding Views
-- [ ] Create `Features/Onboarding/Views/OnboardingContainerView.swift`
-  - [ ] Progress indicator
-  - [ ] Step navigation
-  - [ ] Skip functionality
-- [ ] Create `Features/Onboarding/Views/WelcomeView.swift`
-  - [ ] App introduction
-  - [ ] Key features highlight
-  - [ ] "Get Started" CTA
-- [ ] Create `Features/Onboarding/Views/PersonalityQuizView.swift`
-  - [ ] Journal preference questions
-  - [ ] AI companion style selection
-- [ ] Create `Features/Onboarding/Views/PermissionsView.swift`
-  - [ ] Notifications permission
-  - [ ] Photo library permission
-  - [ ] Camera permission
-- [ ] Create `Features/Onboarding/Views/OnboardingCompleteView.swift`
-  - [ ] Success animation
-  - [ ] Transition to main app
+#### 3.2 Onboarding Views ✅
+- [x] Create `Features/Onboarding/Views/OnboardingContainerView.swift`
+  - [x] Progress indicator (OnboardingNavigationBar)
+  - [x] Step navigation with transitions
+  - [x] Hero symbol morphing between steps
+- [x] Create `Features/Onboarding/Views/WelcomeView.swift`
+  - [x] App logo and animated hero symbols
+  - [x] "Write. Visualize. Reflect." stacked text with highlighting
+  - [x] Swipe-up drawer for "Begin Journey" button
+  - [x] Chevron bounce animation
+- [x] Create `Features/Onboarding/Views/PersonalityQuizView.swift`
+  - [x] 3 quiz questions (journaling style, emotional expression, visual preference)
+  - [x] Auto-progression after answer selection (0.8s delay)
+  - [x] VoiceOver accessibility support
+  - [x] Haptic feedback on selection
+- [x] Create `Features/Onboarding/Views/AICompanionSelectionView.swift`
+  - [x] CompanionCard for each AI companion
+  - [x] "Best Match" badge for recommended companion
+  - [x] Auto-progression after selection (1.0s delay)
+- [x] Create `Features/Onboarding/Views/PermissionsView.swift`
+  - [x] Permission cards with toggle switches
+  - [x] "Enable All Permissions" button
+  - [x] "Start Journaling" and "Set up later" buttons
+  - [x] Settings redirect for denied permissions
 
-#### 3.3 Onboarding ViewModel
-- [ ] Create `Features/Onboarding/ViewModels/OnboardingViewModel.swift`
-  - [ ] Step progression
-  - [ ] Quiz logic
-  - [ ] Permission requests
-  - [ ] Save to iCloud on completion
+#### 3.3 Onboarding Components ✅
+- [x] Create `Features/Onboarding/Components/OnboardingNavigationBar.swift`
+  - [x] Progress bar with gradient fill
+  - [x] Back button with preference key system
+  - [x] AutoProgressionIndicator for timed transitions
+- [x] Create `Features/Onboarding/Components/CompanionCard.swift`
+  - [x] Companion details (name, tagline, description)
+  - [x] Personality traits chips
+  - [x] Signature style section
+  - [x] Selection state with gradient border
+- [x] Create `Features/Onboarding/Components/MorphSymbolView.swift`
+  - [x] SF Symbol morphing with contentTransition
+
+#### 3.4 Onboarding ViewModel ✅
+- [x] Create `Features/Onboarding/ViewModels/OnboardingViewModel.swift`
+  - [x] Step progression (nextStep, previousStep)
+  - [x] Quiz answer management
+  - [x] Companion selection with suggestion logic
+  - [x] Permission grant/revoke
+  - [x] Complete onboarding with iCloud save
+  - [x] Notification posting for state updates
 
 ### Onboarding Flow
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Welcome   │────▶│ Personality │────▶│ Permissions │────▶│  Complete   │
-│             │     │    Quiz     │     │   Request   │     │  → Persona  │
+│   Welcome   │────▶│ Personality │────▶│  Companion  │────▶│ Permissions │
+│             │     │    Quiz     │     │  Selection  │     │   Request   │
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
                                                                    │
                                                                    ▼
                                                            ┌─────────────┐
-                                                           │   Create    │
-                                                           │   Persona   │
+                                                           │  Main App   │
                                                            └─────────────┘
 ```
+
+### Files Created
+```
+InkFiction/
+├── Features/
+│   └── Onboarding/
+│       ├── Models/
+│       │   ├── OnboardingState.swift
+│       │   ├── PersonalityProfile.swift
+│       │   ├── AICompanion.swift
+│       │   └── Permission.swift
+│       ├── Views/
+│       │   ├── OnboardingContainerView.swift
+│       │   ├── WelcomeView.swift
+│       │   ├── PersonalityQuizView.swift
+│       │   ├── AICompanionSelectionView.swift
+│       │   └── PermissionsView.swift
+│       ├── ViewModels/
+│       │   └── OnboardingViewModel.swift
+│       └── Components/
+│           ├── OnboardingNavigationBar.swift
+│           ├── CompanionCard.swift
+│           └── MorphSymbolView.swift
+└── App/
+    └── RootView.swift (updated for onboarding integration)
+```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
 
 ### Reference Files (Old Project)
 | New File | Reference From |
 |----------|---------------|
-| `OnboardingContainerView.swift` | `ink-snap/InkFiction/Features/Onboarding/Views/OnboardingContainerView.swift` |
+| `OnboardingContainerView.swift` | `ink-snap/InkFiction/Features/Onboarding/OnboardingCoordinator.swift` |
 | `PersonalityQuizView.swift` | `ink-snap/InkFiction/Features/Onboarding/Views/PersonalityQuizView.swift` |
 | `PermissionsView.swift` | `ink-snap/InkFiction/Features/Onboarding/Views/PermissionsView.swift` |
+| `AICompanion.swift` | `ink-snap/InkFiction/Features/Onboarding/Models/AICompanion.swift` |
+| `CompanionCard.swift` | `ink-snap/InkFiction/Features/Onboarding/Views/CompanionCard.swift` |
 
 ---
 
@@ -1275,7 +1329,7 @@ Configuration/
 | **0** | **Project Bootstrap & Infrastructure** | **Critical** | ✅ Completed |
 | **1** | **Data Layer & iCloud Integration** | **Critical** | ✅ Completed |
 | **2** | **Biometric App Protection** | **Critical** | ✅ Completed |
-| **3** | Onboarding Flow | High | Pending |
+| **3** | **Onboarding Flow** | **High** | ✅ Completed |
 | **4** | Persona Feature | High | Pending |
 | **5** | Journal Feature | Critical | Pending |
 | **6** | AI Integration | High | Pending |
@@ -1297,3 +1351,4 @@ Configuration/
 | 1.2 | 2025-12-03 | **Phase 0 Completed** - Project bootstrap, Fastlane setup, OSLog logging, NavigationStack+Router, base app files, Info.plist permissions. Simplified to single build configuration. Build verified with `fastlane build`. |
 | 1.3 | 2025-12-03 | **Phase 1 Completed** - CloudKit integration (CloudKitManager, CloudKitModels, SyncMonitor), SwiftData models for all entities, Repository pattern (JournalRepository, PersonaRepository, SettingsRepository). Offline-first approach with network reachability. Build verified. |
 | 1.4 | 2025-12-03 | **Phase 2 Completed** - Biometric app protection (BiometricService, BiometricGateView, BiometricViewModel). Face ID/Touch ID authentication with LocalAuthentication framework, error handling, failed attempt tracking, passcode fallback. App locks on background/launch. Build verified. |
+| 1.5 | 2025-12-03 | **Phase 3 Completed** - Full onboarding flow with 4 screens: Welcome (animated hero, swipe drawer), Personality Quiz (3 questions with auto-progression), AI Companion Selection (4 companions: Poet, Sage, Dreamer, Realist), Permissions (notifications, photos, biometric). Includes OnboardingViewModel, reusable components (NavigationBar, CompanionCard, MorphSymbolView). Theme-aware with Paper theme integration. Build verified. |

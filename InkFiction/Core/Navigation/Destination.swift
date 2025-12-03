@@ -41,31 +41,7 @@ enum Destination: Hashable {
 }
 
 // MARK: - Onboarding Steps
-
-enum OnboardingStep: Int, CaseIterable, Hashable {
-    case welcome
-    case personalityQuiz
-    case permissions
-    case personaCreation
-    case complete
-
-    var title: String {
-        switch self {
-        case .welcome: "Welcome"
-        case .personalityQuiz: "About You"
-        case .permissions: "Permissions"
-        case .personaCreation: "Create Persona"
-        case .complete: "All Set"
-        }
-    }
-
-    var isSkippable: Bool {
-        switch self {
-        case .welcome, .complete, .personaCreation: false
-        case .personalityQuiz, .permissions: true
-        }
-    }
-}
+// Note: OnboardingStep is defined in Features/Onboarding/Models/OnboardingState.swift
 
 // MARK: - Insight Types
 

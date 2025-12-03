@@ -14,93 +14,26 @@ struct RootView: View {
                 // Biometric gate
                 BiometricGateView()
             } else if !appState.hasCompletedOnboarding {
-                // Onboarding flow
-                OnboardingPlaceholderView()
-            } else if !appState.hasPersona {
-                // Persona creation
-                PersonaCreationPlaceholderView()
+                // Onboarding flow (includes companion selection which serves as persona)
+                OnboardingContainerView()
             } else {
-                // Main app
+                // Main app - go directly after onboarding is complete
                 MainTabView()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
+            appState.completeOnboarding()
+        }
         .animation(.easeInOut(duration: 0.3), value: appState.isUnlocked)
         .animation(.easeInOut(duration: 0.3), value: appState.hasCompletedOnboarding)
-        .animation(.easeInOut(duration: 0.3), value: appState.hasPersona)
     }
 }
 
 // MARK: - Placeholder Views (to be replaced in later phases)
 
 // BiometricGateView is now implemented in Features/Biometric/Views/BiometricGateView.swift
-
-struct OnboardingPlaceholderView: View {
-    @Environment(AppState.self) private var appState
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "book.pages")
-                .font(.system(size: 64))
-                .foregroundStyle(.purple)
-
-            Text("Welcome to InkFiction")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-
-            Text("Your personal journaling companion")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Button {
-                appState.completeOnboarding()
-            } label: {
-                Text("Get Started")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.purple)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cornerRadius))
-            }
-            .padding(.horizontal, 40)
-        }
-        .padding()
-    }
-}
-
-struct PersonaCreationPlaceholderView: View {
-    @Environment(AppState.self) private var appState
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "person.crop.circle.badge.plus")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
-
-            Text("Create Your Persona")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-
-            Text("Define your journal identity")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Button {
-                appState.hasPersona = true
-            } label: {
-                Text("Create Persona")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.green)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cornerRadius))
-            }
-            .padding(.horizontal, 40)
-        }
-        .padding()
-    }
-}
+// OnboardingContainerView is now implemented in Features/Onboarding/Views/OnboardingContainerView.swift
+// Note: Persona creation is handled during onboarding (companion selection)
 
 // MARK: - Main Tab View
 
@@ -191,7 +124,7 @@ struct MainTabView: View {
     private func fullScreenCoverView(for cover: FullScreenDestination) -> some View {
         switch cover {
         case .onboarding:
-            OnboardingPlaceholderView()
+            OnboardingContainerView()
         case .biometricGate:
             BiometricGateView()
         case .imageViewer(let imageId):
@@ -262,9 +195,6 @@ struct SettingsPlaceholderView: View {
             Section("Debug") {
                 Button("Reset Onboarding") {
                     appState.hasCompletedOnboarding = false
-                }
-                Button("Reset Persona") {
-                    appState.hasPersona = false
                 }
                 Button("Lock App") {
                     appState.lock()

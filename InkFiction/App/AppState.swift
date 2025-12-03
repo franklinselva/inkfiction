@@ -18,15 +18,12 @@ final class AppState {
     // MARK: - Onboarding State
 
     /// Whether the user has completed onboarding
-    var hasCompletedOnboarding: Bool {
-        get { UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding) }
-        set { UserDefaults.standard.set(newValue, forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding) }
+    /// This is a stored property for SwiftUI observation, synced with UserDefaults
+    var hasCompletedOnboarding: Bool = UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding) {
+        didSet {
+            UserDefaults.standard.set(hasCompletedOnboarding, forKey: Constants.UserDefaultsKeys.hasCompletedOnboarding)
+        }
     }
-
-    // MARK: - Persona State
-
-    /// Whether the user has created a persona
-    var hasPersona: Bool = false
 
     // MARK: - Sync State
 
@@ -69,7 +66,6 @@ final class AppState {
         Log.warning("Resetting app state", category: .app)
         isUnlocked = false
         hasCompletedOnboarding = false
-        hasPersona = false
         syncStatus = .idle
     }
 }

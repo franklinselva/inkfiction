@@ -81,10 +81,9 @@ struct InkFictionApp: App {
         // Load theme from settings
         await themeManager.loadThemeFromRepository()
 
-        // Load persona if exists
+        // Load persona if exists (for later use in app)
         do {
             try await PersonaRepository.shared.loadPersona()
-            appState.hasPersona = PersonaRepository.shared.hasPersona
         } catch {
             Log.error("Failed to load persona", error: error, category: .persona)
         }
