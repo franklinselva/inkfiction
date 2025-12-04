@@ -32,7 +32,6 @@ struct MorphSymbolView: View {
     let config: MorphSymbolConfiguration
 
     @State private var currentSymbol: String = ""
-    @State private var isAnimating = false
 
     var body: some View {
         ZStack {
@@ -40,7 +39,7 @@ struct MorphSymbolView: View {
                 Image(systemName: currentSymbol)
                     .font(config.font)
                     .foregroundColor(config.foregroundColor)
-                    .contentTransition(.symbolEffect(.replace))
+                    .contentTransition(.symbolEffect(.automatic))
                     .frame(width: config.frame.width, height: config.frame.height)
             } else {
                 Image(systemName: currentSymbol)
@@ -54,7 +53,7 @@ struct MorphSymbolView: View {
             currentSymbol = symbol
         }
         .onChange(of: symbol) { _, newValue in
-            withAnimation(.easeInOut(duration: config.keyFrameDuration)) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 currentSymbol = newValue
             }
         }

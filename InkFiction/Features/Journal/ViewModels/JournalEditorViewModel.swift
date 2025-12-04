@@ -34,6 +34,7 @@ final class JournalEditorViewModel {
     var isGeneratingImage: Bool = false
     var isGeneratingTitle: Bool = false
     var isEnhancing: Bool = false
+    var hasEnhanced: Bool = false
     var showError: Bool = false
     var errorMessage: String = ""
     var showAddTag: Bool = false
@@ -122,6 +123,26 @@ final class JournalEditorViewModel {
 
     var hasChanges: Bool {
         content != originalContent || !title.isEmpty || !images.isEmpty || mood != .neutral || !tags.isEmpty
+    }
+
+    /// Whether the content can be enhanced (has enough content and not currently processing)
+    var canEnhance: Bool {
+        let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedContent.isEmpty &&
+               trimmedContent.count >= Constants.AI.Limits.minContentForProcessing &&
+               !isProcessing &&
+               !isEnhancing
+    }
+
+    /// Whether AI image generation is available
+    var canGenerateAIImage: Bool {
+        hasEnhanced && !generatedImagePrompt.isEmpty && !isGeneratingImage
+    }
+
+    /// Whether enhancement features should be shown to the user (subscription check)
+    var canShowEnhancementFeatures: Bool {
+        let tier = SubscriptionService.shared.currentTier
+        return JournalEntryPolicy.canShowEnhancementUI(for: tier)
     }
 
     // MARK: - Entry Operations
@@ -475,6 +496,9 @@ extension JournalEditorViewModel {
                 if let imagePrompt = result.imagePrompt {
                     generatedImagePrompt = imagePrompt
                 }
+
+                // Mark as enhanced
+                hasEnhanced = true
 
                 Log.info("Journal entry processed: title=\(result.title), mood=\(result.mood)", category: .journal)
             }

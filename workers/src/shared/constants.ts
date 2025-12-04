@@ -48,4 +48,4 @@ export const MAX_REFERENCE_IMAGES = 3;
 
 // Models
 export const TEXT_MODEL = 'gemini-2.5-flash';
-export const IMAGE_MODEL = 'gemini-2.5-flash-preview-05-20';
+export const IMAGE_MODEL = 'gemini-2.5-flash-image';
