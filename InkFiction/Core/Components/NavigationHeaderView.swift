@@ -46,13 +46,13 @@ struct NavigationHeaderConfig {
 
 struct NavigationHeaderView: View {
     @Environment(\.themeManager) private var themeManager
+    @Environment(Router.self) private var router
 
     let config: NavigationHeaderConfig
     let scrollOffset: CGFloat
 
     private let personaRepository = PersonaRepository.shared
     @State private var avatarImage: UIImage?
-    @State private var showingPersonaSheet = false
 
     init(config: NavigationHeaderConfig, scrollOffset: CGFloat = 0) {
         self.config = config
@@ -116,7 +116,7 @@ struct NavigationHeaderView: View {
 
     private func avatarButton(action: @escaping () -> Void) -> some View {
         Button(action: {
-            showingPersonaSheet = true
+            router.showPersonaManagement()
         }) {
             ZStack {
                 Circle()
@@ -151,9 +151,6 @@ struct NavigationHeaderView: View {
         }
         .onAppear {
             loadAvatarImage()
-        }
-        .sheet(isPresented: $showingPersonaSheet) {
-            PersonaDetailSheet()
         }
     }
 

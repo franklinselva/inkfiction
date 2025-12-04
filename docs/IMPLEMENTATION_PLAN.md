@@ -552,9 +552,10 @@ InkFiction/
 
 ---
 
-## Phase 4: Persona Feature
+## Phase 4: Persona Feature ✅ COMPLETED
 
 **Priority:** High
+**Status:** ✅ Completed on 2025-12-04
 **Description:** Single persona with multiple avatar style variations.
 
 ### Key Concept
@@ -564,97 +565,119 @@ InkFiction/
 
 ### Checklist
 
-#### 4.1 Persona Models
-- [ ] Create `Features/Persona/Models/PersonaProfile.swift`
-  ```swift
-  struct PersonaProfile: Identifiable {
-      let id: UUID
-      var name: String
-      var bio: String?
-      var attributes: PersonaAttributes
-      var avatars: [PersonaAvatar]  // Multiple style variations
-      var activeAvatarId: UUID?
-      let createdAt: Date
-      var updatedAt: Date
-  }
-  ```
-- [ ] Create `Features/Persona/Models/PersonaAvatar.swift`
-  ```swift
-  struct PersonaAvatar: Identifiable {
-      let id: UUID
-      let style: AvatarStyle
-      let imageData: Data
-      let createdAt: Date
-  }
-  ```
-- [ ] Create `Features/Persona/Models/AvatarStyle.swift`
-  ```swift
-  enum AvatarStyle: String, CaseIterable {
-      case artistic
-      case cartoon
-      case minimalist
-      case watercolor
-      case sketch
+#### 4.1 Persona Models ✅
+- [x] Create `Features/Persona/Models/PersonaProfile.swift`
+  - [x] Rich domain model with all attributes for avatar generation
+  - [x] Consistency settings for generation quality
+  - [x] Mood tags for persona preferences
+  - [x] Base prompt generation for AI services
+- [x] Create `Features/Persona/Models/PersonaAvatarStyleMetadata.swift`
+  - [x] Favor ratings for user preferences
+  - [x] Usage tracking
+  - [x] Comparable for sorting
+- [x] Create `Features/Persona/Models/EnvironmentPreference.swift`
+  - [x] Environment settings (studio, outdoor, urban, etc.)
+  - [x] Lighting styles (soft, golden hour, dramatic, etc.)
+  - [x] Time of day, weather, season
+  - [x] Color palette and background styles
+  - [x] Camera angle options
+  - [x] Preset environments
+- [x] Create `Features/Persona/Models/PersonaType.swift`
+  - [x] 14 persona types (professional, creative, fitness, etc.)
+  - [x] Preferred moods per type
+  - [x] Context keywords for compatibility scoring
+- [x] Create `Features/Persona/Models/PersonaUpdatePolicy.swift`
+  - [x] Tier-based policies (free, enhanced, premium)
+  - [x] Update frequency tracking
+  - [x] Generation limits per tier
+  - [x] PersonaCreationState enum
+- [x] Updated `Core/Data/SwiftData/SwiftDataModels.swift`
+  - [x] Added `promptDescription` extension to PersonaAttributes
+  - [x] ClothingStyle prompt extension
 
-      var displayName: String { ... }
-      var description: String { ... }
-  }
-  ```
-- [ ] Create `Features/Persona/Models/PersonaAttributes.swift`
-  - [ ] Environment preference
-  - [ ] Preferred moods
-  - [ ] Activity keywords
+#### 4.2 Persona Views ✅
+- [x] Create `Features/Persona/Views/PersonaCreationSheet.swift`
+  - [x] 2-step flow: photo selection → style review
+  - [x] Step indicators with progress
+  - [x] Photo selection with ImagePicker
+  - [x] Style selection grid (up to 3 styles)
+  - [x] Generation progress overlay
+  - [x] Error handling with retry
+  - [x] Save persona with generated avatars
+- [x] Create `Features/Persona/Views/PersonaManagementSheet.swift`
+  - [x] Free tier showcase view (upgrade CTA)
+  - [x] Paid tier management view
+  - [x] PersonaHeroSection with avatar display
+  - [x] Avatar style horizontal carousel
+  - [x] Create/update persona button
+  - [x] Tips section
+  - [x] Delete avatar style with confirmation
+- [x] Create `Features/Persona/Components/ImageCarouselView.swift`
+  - [x] Photo library card
+  - [x] Selected image card
+  - [x] Generation overlay with animated status
+- [x] Create `Features/Persona/Components/ImagePicker.swift`
+  - [x] PHPickerViewController wrapper
+  - [x] CameraView for taking photos
+- [x] Uses existing `PolaroidFrameView` from ImageContainers
 
-#### 4.2 Persona Views
-- [ ] Create `Features/Persona/Views/PersonaCreationView.swift`
-  - [ ] Name input
-  - [ ] Bio input (optional)
-  - [ ] Attribute selection
-- [ ] Create `Features/Persona/Views/PersonaDetailView.swift`
-  - [ ] Display persona info
-  - [ ] Avatar carousel (all styles)
-  - [ ] Edit button
-  - [ ] Generate new avatar button
-- [ ] Create `Features/Persona/Views/AvatarStyleCarousel.swift`
-  - [ ] Horizontal scroll of avatar styles
-  - [ ] Active indicator
-  - [ ] Tap to switch active
-- [ ] Create `Features/Persona/Views/AvatarGenerationView.swift`
-  - [ ] Style picker
-  - [ ] Generation progress
-  - [ ] Preview and save
+#### 4.3 Persona ViewModels ✅
+- [x] Update `Features/Persona/ViewModels/PersonaViewModel.swift`
+  - [x] Load/save persona
+  - [x] Update persona details
+  - [x] Add/remove avatars
+  - [x] Set active avatar
+- [x] Create `Features/Persona/ViewModels/PersonaCreationViewModel.swift`
+  - [x] Validation (name length)
+  - [x] Save persona with photo and generated avatars
+  - [x] Update existing persona with new styles
+  - [x] Progress tracking
+  - [x] Notification posting
 
-#### 4.3 Persona ViewModel
-- [ ] Create `Features/Persona/ViewModels/PersonaViewModel.swift`
-  - [ ] Load/save persona
-  - [ ] Update persona details
-  - [ ] Generate avatar in style
-  - [ ] Switch active avatar
-  - [ ] Sync to iCloud
+#### 4.4 Navigation Integration ✅
+- [x] Added `personaCreation` and `personaManagement` sheet destinations
+- [x] Added Router convenience methods (`showPersonaCreation`, `showPersonaManagement`)
+- [x] Updated RootView with sheet handling for persona sheets
 
-### Avatar Style Variations Diagram
+### Files Created
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     SINGLE PERSONA                           │
-│  Name: "Alex"                                                │
-│  Bio: "A creative soul who loves nature"                    │
-│                                                              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              AVATAR STYLE VARIATIONS                 │    │
-│  │                                                      │    │
-│  │  [Artistic]  [Cartoon]  [Minimalist]  [Watercolor]  │    │
-│  │      ✓                                               │    │
-│  │   (active)                                           │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+InkFiction/
+├── Core/
+│   └── Data/
+│       └── SwiftData/
+│           └── SwiftDataModels.swift (updated with prompt extensions)
+└── Features/
+    └── Persona/
+        ├── Models/
+        │   ├── PersonaProfile.swift (domain model + extensions)
+        │   ├── PersonaAvatarStyleMetadata.swift
+        │   ├── EnvironmentPreference.swift
+        │   ├── PersonaType.swift
+        │   └── PersonaUpdatePolicy.swift
+        ├── Views/
+        │   ├── PersonaCreationSheet.swift
+        │   └── PersonaManagementSheet.swift
+        ├── ViewModels/
+        │   ├── PersonaViewModel.swift (updated)
+        │   └── PersonaCreationViewModel.swift
+        └── Components/
+            ├── ImageCarouselView.swift
+            └── ImagePicker.swift
 ```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
 
 ### Reference Files (Old Project)
 | New File | Reference From |
 |----------|---------------|
-| `PersonaProfile.swift` | `ink-snap/InkFiction/Features/Persona/Models/PersonaProfile.swift` (simplify to single) |
-| `AvatarStyle.swift` | `ink-snap/InkFiction/Features/Persona/Models/AvatarStyle.swift` |
-| `PersonaCreationView.swift` | `ink-snap/InkFiction/Features/Persona/Views/PersonaCreationSheet.swift` |
+| `PersonaProfile.swift` | `ink-snap/InkFiction/Features/Persona/Models/PersonaProfile.swift` |
+| `PersonaAvatarStyleMetadata.swift` | `ink-snap/InkFiction/Core/Models/PersonaAvatarStyleMetadata.swift` |
+| `EnvironmentPreference.swift` | `ink-snap/InkFiction/Features/Persona/Models/EnvironmentPreference.swift` |
+| `PersonaCreationSheet.swift` | `ink-snap/InkFiction/Features/Persona/Views/PersonaCreationSheet.swift` |
+| `PersonaManagementSheet.swift` | `ink-snap/InkFiction/Features/Persona/Views/PersonaManagementSheet.swift` |
+| `ImageCarouselView.swift` | `ink-snap/InkFiction/Features/Persona/Views/ImageCarousel.swift` |
+| `ImagePicker.swift` | `ink-snap/InkFiction/Features/Persona/Views/ImagePicker.swift` |
 
 ---
 
@@ -1779,7 +1802,7 @@ Configuration/
 | **1** | **Data Layer & iCloud Integration** | **Critical** | ✅ Completed |
 | **2** | **Biometric App Protection** | **Critical** | ✅ Completed |
 | **3** | **Onboarding Flow** | **High** | ✅ Completed |
-| **4** | Persona Feature | High | Pending |
+| **4** | **Persona Feature** | **High** | ✅ Completed |
 | **5** | **Journal Feature** | **Critical** | ✅ Completed |
 | **6** | **AI Integration** | **High** | ✅ Completed |
 | **7** | **Timeline & Analytics** | **Medium** | ✅ Completed |
@@ -1807,3 +1830,4 @@ Configuration/
 | 1.9 | 2025-12-03 | **Phase 8 Completed** - Full Reflect feature with organic mood orb visualization. Components: GlassmorphicMoodOrb (floating animation, glow effects, rim rotation), OrganicMoodOrbCluster (force-directed physics, collision detection, golden angle distribution), GradientBackground (animated layers, glass overlay). Views: ReflectView (AnimatedGradientBackground, NavigationHeaderView with menu, OrganicMoodOrbCluster, empty state), MoodDetailSheet (stats, visual memories, recent entries, image gallery), ReflectMoodDistributionView. Models: MoodData, MoodReflection, ReflectionConfig, TimeFrame, MoodDetectionKeywords, SentimentAnalysis. ViewModel: ReflectViewModel (mood analysis, keyword scoring, sentiment intensity, timeframe filtering). Updated NavigationHeaderView with menu/toggle button types. Added analytics and moodAnalysis log categories. Build verified. |
 | 2.0 | 2025-12-04 | **Phase 10 Completed** - Full Subscription & StoreKit implementation. StoreKit Config: InkFictionSubscriptions.storekit with 4 products (Enhanced/Premium × Monthly/Yearly), 7-day trial for Enhanced. Models: SubscriptionTier (free/enhanced/premium with gradients), SubscriptionPolicy (tier limits, feature flags, retention offers), SubscriptionPricing (pricing, product IDs). Services: StoreKitManager (StoreKit 2, purchase/restore, transaction listener), SubscriptionService (entitlements, usage tracking, daily reset), PaywallDisplayManager (exponential backoff, context-aware). Views: PaywallView (hero, mood orb showcase, features, plan cards, trial banner, trust badges), PaywallViewModel (purchase flow, restore). Components: PlanCard (4 styles), FeatureRow, PricingToggleView, UpgradeButton, RestorePurchasesButton, TrialOfferBanner. App integration: RootView paywall sheet, Settings subscription section with debug controls. Build verified. |
 | 2.1 | 2025-12-04 | **Phase 6 Completed** - Full AI Integration for Gemini 2.5 Flash via Vercel backend. Models: AIModels (request/response types, operation enums, context), AIError (comprehensive error handling). Prompt System: PromptPolicy protocol, PromptManager coordinator, 7 prompt policies (MoodAnalysis, TitleGeneration, JournalEnhancement, JournalImage, PersonaAvatar, Reflection, JournalProcessing). Services: GeminiService (core API client, retry logic), ImageGenerationService (avatar/journal images, caching, quota), MoodAnalysisService (AI + local fallback, batch analysis), ReflectionService (timeframe reflections, streak calculation), TitleGenerationService (titles, enhancement, full processing). Updated Constants with AI configuration, SubscriptionService with AI quota methods. iOS client ready; Vercel backend to be implemented separately. Build verified. |
+| 2.2 | 2025-12-04 | **Phase 4 Completed** - Full Persona Feature implementation ported from old app. Models: PersonaProfile (domain model with consistency settings, mood tags, base prompt generation), PersonaAvatarStyleMetadata (favor ratings, usage tracking), EnvironmentPreference (15+ enums for environment/lighting/weather/season/color/background/camera settings), PersonaType (14 types with context keywords), PersonaUpdatePolicy (tier-based limits). Views: PersonaCreationSheet (2-step flow: photo → style review, step indicators, generation overlay), PersonaManagementSheet (free tier showcase, paid tier management, hero section, avatar carousel). Components: ImageCarouselView (photo library/selected cards, generation overlay), ImagePicker (PHPicker + Camera). ViewModels: PersonaCreationViewModel (validation, save with avatars, progress), PersonaViewModel (CRUD, active avatar). Navigation: Added sheet destinations and Router methods. Uses existing PolaroidFrameView from ImageContainers. Build verified. |

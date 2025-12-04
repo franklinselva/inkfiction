@@ -489,6 +489,81 @@ struct PersonaAttributes: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: - PersonaAttributes Prompt Generation
+
+extension PersonaAttributes {
+    /// Generate prompt description for AI image generation
+    var promptDescription: String {
+        var components: [String] = []
+
+        // Gender/presentation
+        if gender != .neutral {
+            components.append("\(gender.rawValue) presenting person")
+        } else {
+            components.append("person")
+        }
+
+        // Age
+        switch ageRange {
+        case .child: components.append("young child")
+        case .teen: components.append("teenager")
+        case .youngAdult: components.append("young adult")
+        case .adult: components.append("adult")
+        case .middleAge: components.append("middle-aged")
+        case .senior: components.append("elderly")
+        }
+
+        // Hair
+        if hairStyle != .bald {
+            components.append("\(hairColor.rawValue) \(hairStyle.rawValue) hair")
+        } else {
+            components.append("bald")
+        }
+
+        // Eyes
+        components.append("\(eyeColor.rawValue) eyes")
+
+        // Facial features
+        for feature in facialFeatures {
+            switch feature {
+            case .glasses: components.append("wearing glasses")
+            case .sunglasses: components.append("wearing sunglasses")
+            case .beard: components.append("with beard")
+            case .mustache: components.append("with mustache")
+            case .freckles: components.append("with freckles")
+            case .dimples: components.append("with dimples")
+            case .scars: components.append("with facial scars")
+            }
+        }
+
+        // Clothing
+        components.append("\(clothingStyle.promptDescription) clothing")
+
+        // Accessories
+        for accessory in accessories {
+            components.append("wearing \(accessory.rawValue)")
+        }
+
+        return components.joined(separator: ", ")
+    }
+}
+
+// MARK: - ClothingStyle Prompt Extension
+
+extension PersonaAttributes.ClothingStyle {
+    var promptDescription: String {
+        switch self {
+        case .casual: return "casual comfortable"
+        case .business: return "professional business"
+        case .sporty: return "athletic sporty"
+        case .elegant: return "elegant formal"
+        case .artistic: return "creative artistic"
+        case .vintage: return "vintage retro"
+        case .streetwear: return "modern streetwear"
+        }
+    }
+}
+
 // MARK: - CloudKit Conversion Extensions
 
 extension JournalEntryModel: CloudKitRecordConvertible {

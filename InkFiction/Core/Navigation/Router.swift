@@ -100,6 +100,14 @@ final class Router {
     func showBiometricGate() {
         present(fullScreenCover: .biometricGate)
     }
+
+    func showPersonaCreation() {
+        push(.personaCreation)
+    }
+
+    func showPersonaManagement() {
+        push(.personaManagement)
+    }
 }
 
 // MARK: - Alert State

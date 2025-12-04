@@ -48,6 +48,7 @@ struct MainTabView: View {
 
     @Environment(Router.self) private var router
     @Environment(\.themeManager) private var themeManager
+    @Environment(SubscriptionService.self) private var subscriptionService
 
     @State private var tabBarViewModel = TabBarViewModel()
     @State private var scrollOffset: CGFloat = 0
@@ -246,6 +247,12 @@ struct MainTabView: View {
             settingsDestinationView(for: section)
         case .persona:
             Text("Persona Detail")
+        case .personaManagement:
+            PersonaManagementView()
+                .navigationBarHidden(true)
+        case .personaCreation:
+            PersonaCreationView()
+                .navigationBarHidden(true)
         case .personaEdit:
             Text("Edit Persona")
         case .avatarGeneration(let style):
@@ -294,6 +301,12 @@ struct MainTabView: View {
         case .paywall:
             PaywallView(context: .manualOpen)
                 .environment(\.themeManager, themeManager)
+        case .personaCreation:
+            // Now handled via fullScreenCover
+            EmptyView()
+        case .personaManagement:
+            // Now handled via fullScreenCover
+            EmptyView()
         default:
             Text("Sheet: \(sheet.id)")
         }

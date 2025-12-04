@@ -32,6 +32,8 @@ enum Destination: Hashable {
 
     // MARK: - Persona
     case persona
+    case personaManagement
+    case personaCreation
     case personaEdit
     case avatarGeneration(style: AvatarStyleType?)
 
@@ -107,6 +109,8 @@ enum SheetDestination: Identifiable, Hashable {
     case paywall
     case export
     case personaDetail
+    case personaCreation
+    case personaManagement
 
     var id: String {
         switch self {
@@ -118,6 +122,8 @@ enum SheetDestination: Identifiable, Hashable {
         case .paywall: "paywall"
         case .export: "export"
         case .personaDetail: "personaDetail"
+        case .personaCreation: "personaCreation"
+        case .personaManagement: "personaManagement"
         }
     }
 }

@@ -9,6 +9,7 @@ struct InkFictionApp: App {
     @State private var appState = AppState()
     @State private var router = Router()
     @State private var themeManager = ThemeManager()
+    @State private var subscriptionService = SubscriptionService.shared
 
     // MARK: - SwiftData
 
@@ -41,6 +42,7 @@ struct InkFictionApp: App {
                 .environment(appState)
                 .environment(router)
                 .environment(themeManager)
+                .environment(subscriptionService)
                 .preferredColorScheme(themeManager.colorScheme)
                 .task {
                     await initializeApp()
