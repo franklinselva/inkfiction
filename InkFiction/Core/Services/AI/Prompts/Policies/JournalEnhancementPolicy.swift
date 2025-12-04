@@ -3,6 +3,7 @@
 //  InkFiction
 //
 //  Prompt policy for enhancing journal entry content
+//  Ported from old app's JournalEnhancementPolicy
 //
 
 import Foundation
@@ -12,7 +13,13 @@ import Foundation
 struct JournalEnhancementPolicy: PromptPolicy {
     static let policyId = "journal_enhancement"
 
-    var identifier: String { Self.policyId }
+    private let enhancementStyle: EnhancementStyle
+
+    init(style: EnhancementStyle = .refine) {
+        self.enhancementStyle = style
+    }
+
+    var identifier: String { "\(Self.policyId)_\(enhancementStyle.rawValue)" }
 
     var modelRequirements: ModelRequirements {
         ModelRequirements(
@@ -24,7 +31,14 @@ struct JournalEnhancementPolicy: PromptPolicy {
         )
     }
 
-    var contextAllocation: ContextAllocation { .balanced }
+    var contextAllocation: ContextAllocation {
+        ContextAllocation(
+            systemRatio: 0.10,
+            userRatio: 0.15,
+            contentRatio: 0.60,
+            outputRatio: 0.15
+        )
+    }
 
     func validate(context: PromptContext) throws {
         guard !context.primaryContent.isEmpty else {
@@ -37,98 +51,95 @@ struct JournalEnhancementPolicy: PromptPolicy {
     }
 
     func buildPrompt(context: PromptContext) throws -> PromptComponents {
-        let styleRaw = context.customVariables?["enhancementStyle"] ?? EnhancementStyle.refine.rawValue
-        let style = EnhancementStyle(rawValue: styleRaw) ?? .refine
-
-        let companionContext = buildCompanionContext(context.companion)
-        let styleInstructions = buildStyleInstructions(style)
-
         let systemPrompt = """
-        You are a skilled writing assistant helping to enhance personal journal entries.
-        \(companionContext)
+            Enhance journal entries in a \(enhancementStyle.description) style.
 
-        Core principles:
-        - Preserve the author's authentic voice and perspective
-        - Maintain all factual information and personal details
-        - Keep the first-person narrative style
-        - Never add fictional events or emotions not implied in the original
-        - Respect the privacy and personal nature of journal writing
+            Rules:
+            - Maintain the user's voice and perspective (I/me/my)
+            - Preserve emotional authenticity
+            - Return ONLY the enhanced text
+            - No markdown, asterisks, or formatting
+            - Plain text only
+            """
 
-        \(styleInstructions)
-        """
+        var userContext = ""
+        if let companion = context.companion {
+            userContext = CompanionPromptTemplates.enhancementPrompt(
+                for: companion,
+                context: CompanionContextAdapter.buildUserAIContext(
+                    from: context,
+                    enhancementStyle: enhancementStyle
+                )
+            )
+        }
 
         let content = """
-        Enhance this journal entry using the '\(style.displayName)' style:
+            Enhance this journal entry:
 
-        ---
-        \(context.primaryContent)
-        ---
+            "\(context.primaryContent)"
 
-        Respond with JSON:
-        {
-          "enhancedContent": "The enhanced journal entry text",
-          "changes": ["Brief description of changes made"]
-        }
-        """
+            Make it more \(enhancementStyle.description) while preserving meaning.
+            """
 
         return PromptComponents(
             systemPrompt: systemPrompt,
+            userContext: userContext,
             content: content,
-            responseFormat: .json
+            responseFormat: .plainText
         )
     }
 
-    private func buildCompanionContext(_ companion: AICompanion?) -> String {
+    private func buildCompanionContext(_ companion: AICompanion?, context: PromptContext) -> String {
         guard let companion = companion else { return "" }
 
         return """
 
-        You are channeling the voice of \(companion.name), the \(companion.tagline).
-        Writing style traits: \(companion.personality.joined(separator: ", "))
-        """
+            You are channeling the voice of \(companion.name), the \(companion.tagline).
+            Writing style traits: \(companion.personality.joined(separator: ", "))
+            """
     }
 
     private func buildStyleInstructions(_ style: EnhancementStyle) -> String {
         switch style {
         case .expand:
             return """
-            EXPAND style instructions:
-            - Add sensory details (sights, sounds, smells, textures)
-            - Elaborate on emotions and their nuances
-            - Include reflective thoughts that deepen the narrative
-            - Expand brief mentions into fuller descriptions
-            - Aim for 50-100% longer than original
-            """
+                EXPAND style instructions:
+                - Add sensory details (sights, sounds, smells, textures)
+                - Elaborate on emotions and their nuances
+                - Include reflective thoughts that deepen the narrative
+                - Expand brief mentions into fuller descriptions
+                - Aim for 50-100% longer than original
+                """
 
         case .refine:
             return """
-            REFINE style instructions:
-            - Improve sentence structure and flow
-            - Fix grammar and punctuation
-            - Enhance word choice for clarity and impact
-            - Maintain similar length to original
-            - Polish without changing the core message
-            """
+                REFINE style instructions:
+                - Improve sentence structure and flow
+                - Fix grammar and punctuation
+                - Enhance word choice for clarity and impact
+                - Maintain similar length to original
+                - Polish without changing the core message
+                """
 
         case .poetic:
             return """
-            POETIC style instructions:
-            - Add metaphors and imagery where appropriate
-            - Use more lyrical, expressive language
-            - Include sensory-rich descriptions
-            - Create rhythm and flow in the prose
-            - Transform mundane descriptions into evocative passages
-            """
+                POETIC style instructions:
+                - Add metaphors and imagery where appropriate
+                - Use more lyrical, expressive language
+                - Include sensory-rich descriptions
+                - Create rhythm and flow in the prose
+                - Transform mundane descriptions into evocative passages
+                """
 
         case .concise:
             return """
-            CONCISE style instructions:
-            - Remove unnecessary words and redundancy
-            - Tighten sentences while preserving meaning
-            - Focus on the essential emotions and events
-            - Aim for 30-50% shorter than original
-            - Keep the emotional core intact
-            """
+                CONCISE style instructions:
+                - Remove unnecessary words and redundancy
+                - Tighten sentences while preserving meaning
+                - Focus on the essential emotions and events
+                - Aim for 30-50% shorter than original
+                - Keep the emotional core intact
+                """
         }
     }
 }

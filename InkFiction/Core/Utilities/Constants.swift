@@ -46,9 +46,9 @@ enum Constants {
     // MARK: - AI
 
     enum AI {
-        /// Base URL for AI API (Vercel backend)
-        /// Set this to your deployed Vercel API URL
-        static let baseURL = "" // e.g., "https://inkfiction-api.vercel.app/api"
+        /// Base URL for AI API (Cloudflare Workers backend)
+        /// Set this to your deployed Cloudflare Worker URL
+        static let baseURL = "" // e.g., "https://inkfiction-api.your-subdomain.workers.dev/api"
 
         /// Gemini model identifier
         static let modelId = "gemini-2.5-flash-preview-05-20"

@@ -3,6 +3,7 @@
 //  InkFiction
 //
 //  Prompt policy for generating journal entry titles
+//  Ported from old app's TitleGenerationPolicy
 //
 
 import Foundation
@@ -19,12 +20,19 @@ struct TitleGenerationPolicy: PromptPolicy {
             minContextWindow: 4000,
             preferredModel: .flash,
             capabilities: [.textGeneration],
-            temperature: 0.8,
+            temperature: 0.7,
             maxOutputTokens: 256
         )
     }
 
-    var contextAllocation: ContextAllocation { .contentFocused }
+    var contextAllocation: ContextAllocation {
+        ContextAllocation(
+            systemRatio: 0.10,
+            userRatio: 0.15,
+            contentRatio: 0.65,
+            outputRatio: 0.10
+        )
+    }
 
     func validate(context: PromptContext) throws {
         guard !context.primaryContent.isEmpty else {
@@ -37,47 +45,47 @@ struct TitleGenerationPolicy: PromptPolicy {
     }
 
     func buildPrompt(context: PromptContext) throws -> PromptComponents {
-        let moodContext = context.mood.map { "The entry has a \($0.rawValue.lowercased()) mood." } ?? ""
-
         let systemPrompt = """
-        You are a creative writer specializing in crafting evocative, memorable titles for personal journal entries.
+            Generate concise, meaningful journal entry titles.
 
-        Guidelines for titles:
-        - Be concise: 3-7 words ideal
-        - Capture the essence or emotion of the entry
-        - Use evocative language that draws readers in
-        - Avoid generic titles like "My Day" or "Journal Entry"
-        - Don't use dates in titles
-        - Match the tone of the content (serious, playful, reflective, etc.)
-        - Can use metaphors, questions, or intriguing phrases
+            Rules:
+            - 3-6 words maximum
+            - Capture the essence of the entry
+            - No quotation marks or special formatting
+            - Plain text only
+            - Be memorable and meaningful
+            """
 
-        Good examples:
-        - "The Quiet After the Storm"
-        - "Chasing Sunsets Again"
-        - "Why I Finally Said Yes"
-        - "Coffee, Chaos, and Small Victories"
-        - "Learning to Let Go"
-        """
+        var userContext = ""
+        if let companion = context.companion {
+            // Use full companion template
+            userContext = CompanionPromptTemplates.titlePrompt(
+                for: companion,
+                visualPreference: context.visualPreference ?? .abstractDreamy
+            )
+        } else {
+            // Generic title generation guidance
+            userContext = """
+                Title Style Guidelines:
+                - Descriptive: Capture the main theme
+                - Evocative: Spark memory and emotion
+                - Concise: Use impactful words
+                - Authentic: Match the entry's tone
+                """
+        }
 
         let content = """
-        Generate a title for this journal entry:
-        \(moodContext)
+            Journal Entry:
+            "\(context.primaryContent)"
 
-        ---
-        \(String(context.primaryContent.prefix(2000)))
-        ---
-
-        Respond with JSON:
-        {
-          "title": "Your main title suggestion",
-          "alternatives": ["Alternative 1", "Alternative 2"]
-        }
-        """
+            Generate a title that captures the essence.
+            """
 
         return PromptComponents(
             systemPrompt: systemPrompt,
+            userContext: userContext,
             content: content,
-            responseFormat: .json
+            responseFormat: .plainText
         )
     }
 }

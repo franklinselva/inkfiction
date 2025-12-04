@@ -2,7 +2,7 @@
 //  GeminiService.swift
 //  InkFiction
 //
-//  Core API client for Gemini 2.5 Flash via Vercel backend
+//  Core API client for Gemini 2.5 Flash via Cloudflare Workers backend
 //
 
 import Foundation
@@ -23,7 +23,7 @@ final class GeminiService {
     private(set) var isProcessing = false
     private(set) var lastError: AIError?
 
-    /// Base URL for AI API (Vercel backend)
+    /// Base URL for AI API (Cloudflare Workers backend)
     var baseURL: String {
         get { UserDefaults.standard.string(forKey: "ai_base_url") ?? Constants.AI.baseURL }
         set { UserDefaults.standard.set(newValue, forKey: "ai_base_url") }
