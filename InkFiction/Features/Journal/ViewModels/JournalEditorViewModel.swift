@@ -59,6 +59,7 @@ final class JournalEditorViewModel {
 
     private var modelContext: ModelContext?
     private let repository = JournalRepository.shared
+    private let personaRepository = PersonaRepository.shared
     private let existingEntryId: UUID?
 
     // MARK: - Content History (for undo)
@@ -468,9 +469,14 @@ extension JournalEditorViewModel {
             // Get persona and visual preference from settings
             let visualPreference = getVisualPreference()
 
+            // Load persona if not already loaded
+            if !personaRepository.isLoaded {
+                try? await personaRepository.loadPersona()
+            }
+
             let result = try await geminiService.processJournalEntry(
                 content: content,
-                persona: nil, // Could be fetched from PersonaRepository if needed
+                persona: personaRepository.currentPersona,
                 visualPreference: visualPreference
             )
 
@@ -536,9 +542,14 @@ extension JournalEditorViewModel {
             let geminiService = GeminiService.shared
             let visualPreference = getVisualPreference()
 
+            // Load persona if not already loaded
+            if !personaRepository.isLoaded {
+                try? await personaRepository.loadPersona()
+            }
+
             let (imageData, _) = try await geminiService.generateJournalImage(
                 sceneDescription: imagePrompt,
-                persona: nil,
+                persona: personaRepository.currentPersona,
                 mood: mood,
                 visualPreference: visualPreference
             )

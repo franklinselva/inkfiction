@@ -37,7 +37,16 @@ struct PersonaManagementView: View {
                         title: navigationTitle,
                         leftButton: .back(action: { router.pop() }),
                         rightButton: subscriptionService.currentTier != .free
-                            ? .icon("plus", action: { router.showPersonaCreation() })
+                            ? .icon(
+                                subscriptionService.canGeneratePersonaAvatar() ? "plus" : "plus.circle",
+                                action: {
+                                    if subscriptionService.canGeneratePersonaAvatar() {
+                                        router.showPersonaCreation()
+                                    } else {
+                                        subscriptionService.showPaywall(context: .personaLimitReached)
+                                    }
+                                }
+                            )
                             : .none
                     ),
                     scrollOffset: scrollOffset
@@ -301,6 +310,10 @@ struct PersonaManagementView: View {
                     .padding(.horizontal, 20)
             }
 
+            // Usage info card
+            usageInfoCard
+                .padding(.horizontal, 20)
+
             // Avatar styles Polaroid carousel - maximized area
             if !personaImages.isEmpty {
                 avatarStylesCarousel
@@ -313,6 +326,96 @@ struct PersonaManagementView: View {
             Spacer(minLength: 40)
         }
         .padding(.top, 12)
+    }
+
+    // MARK: - Usage Info Card
+
+    private var usageInfoCard: some View {
+        let remaining = subscriptionService.remainingPersonaGenerations
+        let limit = subscriptionService.personaGenerationLimit
+        let daysLeft = subscriptionService.daysUntilPersonaPeriodReset
+        let periodLabel = subscriptionService.personaPeriodLabel
+        let progress = limit > 0 ? Double(limit - remaining) / Double(limit) : 0
+
+        return HStack(spacing: 16) {
+            // Progress ring
+            ZStack {
+                Circle()
+                    .stroke(
+                        themeManager.currentTheme.surfaceColor,
+                        lineWidth: 4
+                    )
+                    .frame(width: 44, height: 44)
+
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        LinearGradient(
+                            colors: remaining == 0
+                                ? [.orange, .orange]
+                                : subscriptionService.currentTier.uiGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+                    .frame(width: 44, height: 44)
+                    .rotationEffect(.degrees(-90))
+
+                Text("\(remaining)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(
+                        remaining == 0
+                            ? .orange
+                            : themeManager.currentTheme.textPrimaryColor
+                    )
+            }
+
+            // Info text
+            VStack(alignment: .leading, spacing: 2) {
+                if remaining == 0 {
+                    Text("Generation limit reached")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.orange)
+                } else {
+                    Text("\(remaining) of \(limit) generations left")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+                }
+
+                Text("Resets in \(daysLeft) day\(daysLeft == 1 ? "" : "s") (\(periodLabel))")
+                    .font(.caption)
+                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+            }
+
+            Spacer()
+
+            // Tier badge
+            Text(subscriptionService.currentTier.displayName)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(subscriptionService.currentTier.primaryGradientColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(subscriptionService.currentTier.primaryGradientColor.opacity(0.15))
+                )
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(
+                    remaining == 0 ? Color.orange.opacity(0.5) : themeManager.currentTheme.strokeColor,
+                    lineWidth: 1
+                )
+        )
     }
 
     // MARK: - Compact Persona Header
@@ -489,15 +592,41 @@ struct PersonaManagementView: View {
     }
 
     private var tipsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let remaining = subscriptionService.remainingPersonaGenerations
+        let daysLeft = subscriptionService.daysUntilPersonaPeriodReset
+
+        return VStack(alignment: .leading, spacing: 12) {
             Label("Tips", systemImage: "lightbulb.fill")
                 .font(.headline)
                 .foregroundColor(themeManager.currentTheme.textPrimaryColor)
 
             VStack(spacing: 8) {
+                // Dynamic tip based on usage
+                if remaining == 0 {
+                    tipRow(
+                        icon: "exclamationmark.triangle.fill",
+                        text: "You've used all generations this period. Resets in \(daysLeft) day\(daysLeft == 1 ? "" : "s").",
+                        isWarning: true
+                    )
+                } else if remaining <= 2 {
+                    tipRow(
+                        icon: "exclamationmark.circle.fill",
+                        text: "Only \(remaining) generation\(remaining == 1 ? "" : "s") remaining this \(subscriptionService.personaPeriodLabel).",
+                        isWarning: true
+                    )
+                }
+
                 tipRow(icon: "clock.arrow.circlepath", text: "Update your persona regularly for fresh visuals")
                 tipRow(icon: "sparkles", text: "Personas create consistent AI images across entries")
-                tipRow(icon: "checkmark.circle.fill", text: "Keep the same style for 2-4 weeks for consistency")
+
+                // Upgrade tip for enhanced tier
+                if subscriptionService.currentTier == .enhanced {
+                    tipRow(
+                        icon: "crown.fill",
+                        text: "Upgrade to Premium for 20 generations every 2 weeks",
+                        isUpgrade: true
+                    )
+                }
             }
         }
         .padding(16)
@@ -511,16 +640,24 @@ struct PersonaManagementView: View {
         )
     }
 
-    private func tipRow(icon: String, text: String) -> some View {
+    private func tipRow(icon: String, text: String, isWarning: Bool = false, isUpgrade: Bool = false) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundColor(themeManager.currentTheme.accentColor)
+                .foregroundColor(
+                    isWarning ? .orange :
+                    isUpgrade ? subscriptionService.currentTier.primaryGradientColor :
+                    themeManager.currentTheme.accentColor
+                )
                 .frame(width: 16)
 
             Text(text)
                 .font(.caption)
-                .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                .foregroundColor(
+                    isWarning ? .orange :
+                    isUpgrade ? subscriptionService.currentTier.primaryGradientColor :
+                    themeManager.currentTheme.textSecondaryColor
+                )
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer()

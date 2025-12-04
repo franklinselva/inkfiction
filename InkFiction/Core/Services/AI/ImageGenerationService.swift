@@ -237,7 +237,7 @@ final class ImageGenerationService {
 
     /// Check remaining quota
     var remainingAvatarQuota: Int {
-        subscriptionService.remainingPersonaAvatars
+        subscriptionService.remainingPersonaGenerations
     }
 
     var remainingJournalImageQuota: Int {

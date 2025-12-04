@@ -55,6 +55,7 @@ final class SubscriptionService {
     private init() {
         loadUsageFromDefaults()
         checkAndResetDailyUsageIfNeeded()
+        checkAndResetPersonaPeriodIfNeeded()
     }
 
     // MARK: - Entitlement Checks
@@ -73,16 +74,49 @@ final class SubscriptionService {
     }
 
     var dailyPersonaAvatarLimit: Int {
-        limits.maxPersonaStyles == -1 ? 999 : limits.maxPersonaStyles
+        limits.maxPersonaGenerationsPerPeriod == -1 ? 999 : limits.maxPersonaGenerationsPerPeriod
     }
 
     var remainingJournalImages: Int {
         getRemainingJournalImages()
     }
 
-    var remainingPersonaAvatars: Int {
-        if limits.maxPersonaStyles == -1 { return 999 }
-        return max(0, limits.maxPersonaStyles - personaImagesUsedThisPeriod)
+    var remainingPersonaGenerations: Int {
+        checkAndResetPersonaPeriodIfNeeded()
+        if limits.maxPersonaGenerationsPerPeriod == -1 { return 999 }
+        if limits.maxPersonaGenerationsPerPeriod == 0 { return 0 }
+        return max(0, limits.maxPersonaGenerationsPerPeriod - personaImagesUsedThisPeriod)
+    }
+
+    var personaGenerationsUsed: Int {
+        checkAndResetPersonaPeriodIfNeeded()
+        return personaImagesUsedThisPeriod
+    }
+
+    var personaGenerationLimit: Int {
+        limits.maxPersonaGenerationsPerPeriod
+    }
+
+    var personaPeriodDays: Int {
+        limits.personaUpdateFrequencyDays
+    }
+
+    var daysUntilPersonaPeriodReset: Int {
+        checkAndResetPersonaPeriodIfNeeded()
+        let daysSincePeriodStart = Calendar.current.dateComponents(
+            [.day],
+            from: personaUpdatePeriodStart,
+            to: Date()
+        ).day ?? 0
+        return max(0, limits.personaUpdateFrequencyDays - daysSincePeriodStart)
+    }
+
+    var personaPeriodLabel: String {
+        switch limits.personaUpdateFrequencyDays {
+        case 14: return "bi-weekly"
+        case 30: return "monthly"
+        default: return "\(limits.personaUpdateFrequencyDays) days"
+        }
     }
 
     func canGenerateJournalImage() -> Bool {
@@ -91,9 +125,10 @@ final class SubscriptionService {
     }
 
     func canGeneratePersonaAvatar() -> Bool {
-        if limits.maxPersonaStyles == -1 { return true }
-        if limits.maxPersonaStyles == 0 { return false }
-        return personaImagesUsedThisPeriod < limits.maxPersonaStyles
+        checkAndResetPersonaPeriodIfNeeded()
+        if limits.maxPersonaGenerationsPerPeriod == -1 { return true }
+        if limits.maxPersonaGenerationsPerPeriod == 0 { return false }
+        return personaImagesUsedThisPeriod < limits.maxPersonaGenerationsPerPeriod
     }
 
     func recordJournalImageGeneration() {
@@ -101,9 +136,31 @@ final class SubscriptionService {
     }
 
     func recordPersonaAvatarGeneration() {
+        checkAndResetPersonaPeriodIfNeeded()
         personaImagesUsedThisPeriod += 1
         saveUsageToDefaults()
-        Log.info("Persona avatar usage: \(personaImagesUsedThisPeriod)/\(limits.maxPersonaStyles)", category: .subscription)
+        Log.info("Persona avatar usage: \(personaImagesUsedThisPeriod)/\(limits.maxPersonaGenerationsPerPeriod) this \(personaPeriodLabel)", category: .subscription)
+    }
+
+    func getPersonaGenerationUsageText() -> String {
+        checkAndResetPersonaPeriodIfNeeded()
+
+        if limits.maxPersonaGenerationsPerPeriod == 0 {
+            return "Persona generation not available"
+        }
+
+        if limits.maxPersonaGenerationsPerPeriod == -1 {
+            return "Unlimited generations"
+        }
+
+        let remaining = remainingPersonaGenerations
+        let daysLeft = daysUntilPersonaPeriodReset
+
+        if remaining == 0 {
+            return "Limit reached • Resets in \(daysLeft) day\(daysLeft == 1 ? "" : "s")"
+        }
+
+        return "\(remaining)/\(limits.maxPersonaGenerationsPerPeriod) \(personaPeriodLabel) • Resets in \(daysLeft)d"
     }
 
     func validateJournalImageGeneration() -> (allowed: Bool, reason: SubscriptionPolicy.UpgradeContext?) {
@@ -227,6 +284,27 @@ final class SubscriptionService {
             dailyJournalResetAt = now
             saveUsageToDefaults()
             Log.info("Daily usage reset", category: .subscription)
+        }
+    }
+
+    private func checkAndResetPersonaPeriodIfNeeded() {
+        let periodDays = limits.personaUpdateFrequencyDays
+
+        // If no period limit (-1 = never, 0 = anytime), no reset needed
+        guard periodDays > 0 else { return }
+
+        let daysSincePeriodStart = Calendar.current.dateComponents(
+            [.day],
+            from: personaUpdatePeriodStart,
+            to: Date()
+        ).day ?? 0
+
+        // Reset if period has elapsed
+        if daysSincePeriodStart >= periodDays {
+            personaImagesUsedThisPeriod = 0
+            personaUpdatePeriodStart = Date()
+            saveUsageToDefaults()
+            Log.info("Persona period reset after \(periodDays) days", category: .subscription)
         }
     }
 
