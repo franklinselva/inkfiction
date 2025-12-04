@@ -43,14 +43,39 @@ enum Constants {
         static let selectedCompanionId = "selectedCompanionId"
     }
 
-    // MARK: - API
+    // MARK: - AI
 
-    enum API {
-        static let geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta"
+    enum AI {
+        /// Base URL for AI API (Vercel backend)
+        /// Set this to your deployed Vercel API URL
+        static let baseURL = "" // e.g., "https://inkfiction-api.vercel.app/api"
+
+        /// Gemini model identifier
+        static let modelId = "gemini-2.5-flash-preview-05-20"
 
         enum Timeouts {
             static let `default`: TimeInterval = 30
+            static let textGeneration: TimeInterval = 60
             static let imageGeneration: TimeInterval = 120
+            static let reflection: TimeInterval = 90
+        }
+
+        enum Endpoints {
+            static let analyzeMood = "ai/analyze-mood"
+            static let generateTitle = "ai/generate-title"
+            static let enhanceEntry = "ai/enhance-entry"
+            static let generateImage = "ai/generate-image"
+            static let generateReflection = "ai/generate-reflection"
+            static let processJournal = "ai/process-journal"
+            static let generatePersonaBio = "ai/generate-persona-bio"
+        }
+
+        enum Limits {
+            static let maxContentLength = 50000
+            static let maxPromptLength = 10000
+            static let maxImagePromptLength = 500
+            static let minContentForTitle = 10
+            static let minContentForProcessing = 20
         }
     }
 

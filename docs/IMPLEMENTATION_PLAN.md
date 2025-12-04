@@ -767,53 +767,176 @@ InkFiction/
 
 ---
 
-## Phase 6: AI Integration
+## Phase 6: AI Integration ✅ COMPLETED
 
 **Priority:** High
-**Description:** Gemini API for text analysis and image generation.
+**Status:** ✅ Completed on 2025-12-04
+**Description:** Gemini 2.5 Flash API for text analysis and image generation via Vercel backend.
+
+### Architecture
+- All AI calls go through Vercel serverless functions (backend to be implemented separately)
+- iOS client includes complete prompt policies and service layer
+- Designed for single AI provider (Gemini 2.5 Flash) for both text and images
 
 ### Checklist
 
-#### 6.1 Gemini Service
-- [ ] Create `Core/Services/AI/GeminiService.swift`
-  - [ ] API client with async/await
-  - [ ] Request/response models
-  - [ ] Rate limiting handling
-  - [ ] Error handling
-- [ ] Create `Core/Services/AI/GeminiModels.swift`
-  - [ ] Request/response types
-  - [ ] Token counting
+#### 6.1 AI Models ✅
+- [x] Create `Core/Services/AI/Models/AIModels.swift`
+  - [x] AIConfiguration, AIRequest, AIResponse types
+  - [x] AIOperation enum for all operation types
+  - [x] AIContext for personalization
+  - [x] PersonaAttributesDTO for API serialization
+  - [x] MoodAnalysisResult, TitleGenerationResult
+  - [x] EntryEnhancementResult, JournalProcessingResult
+  - [x] ImageGenerationResult, ReflectionResult
+  - [x] EnhancedJournalContext for rich prompting
+- [x] Create `Core/Services/AI/Models/AIError.swift`
+  - [x] Comprehensive error types (network, API, request, response, image, subscription)
+  - [x] isRetryable and shouldShowAlert helpers
+  - [x] Conversion from API error responses
 
-#### 6.2 Image Generation
-- [ ] Create `Core/Services/AI/ImageGenerationService.swift`
-  - [ ] Persona avatar generation (by style)
-  - [ ] Journal entry image generation
-  - [ ] Generation queue management
-  - [ ] Progress tracking
+#### 6.2 Prompt System ✅
+- [x] Create `Core/Services/AI/Prompts/PromptPolicy.swift`
+  - [x] PromptPolicy protocol
+  - [x] ModelRequirements struct
+  - [x] GeminiModel enum
+  - [x] ContextAllocation ratios
+  - [x] PromptContext for building prompts
+  - [x] PromptComponents output
+  - [x] ResponseFormat (JSON, plain text)
+- [x] Create `Core/Services/AI/Prompts/PromptManager.swift`
+  - [x] Central coordinator for all prompt generation
+  - [x] Policy registration
+  - [x] Convenience methods for common operations
+  - [x] Token estimation
 
-#### 6.3 Text Analysis
-- [ ] Create `Core/Services/AI/MoodAnalysisService.swift`
-  - [ ] Detect mood from text
-  - [ ] Generate title suggestions
-  - [ ] Entry enhancement
-- [ ] Create `Core/Services/AI/ReflectionService.swift`
-  - [ ] Generate mood reflections
-  - [ ] Pattern analysis
+#### 6.3 Prompt Policies ✅
+- [x] Create `Core/Services/AI/Prompts/Policies/MoodAnalysisPolicy.swift`
+  - [x] Mood detection from journal text
+  - [x] JSON response schema with confidence
+  - [x] Client-side fallback via MoodDetectionKeywords extension
+- [x] Create `Core/Services/AI/Prompts/Policies/TitleGenerationPolicy.swift`
+  - [x] Evocative title generation (3-7 words)
+  - [x] Alternative suggestions
+- [x] Create `Core/Services/AI/Prompts/Policies/JournalEnhancementPolicy.swift`
+  - [x] 4 enhancement styles (expand, refine, poetic, concise)
+  - [x] AI companion voice integration
+- [x] Create `Core/Services/AI/Prompts/Policies/JournalImagePolicy.swift`
+  - [x] Visual style based on VisualPreference
+  - [x] Mood-specific atmosphere
+  - [x] Persona element integration
+- [x] Create `Core/Services/AI/Prompts/Policies/PersonaAvatarPolicy.swift`
+  - [x] 5 avatar styles (artistic, cartoon, minimalist, watercolor, sketch)
+  - [x] Persona attributes to prompt conversion
+  - [x] Style-specific modifiers
+- [x] Create `Core/Services/AI/Prompts/Policies/ReflectionPolicy.swift`
+  - [x] Timeframe-based reflections
+  - [x] AI companion voice
+  - [x] Mood trend analysis
+  - [x] Insights and suggestions
+- [x] Create `Core/Services/AI/Prompts/Policies/JournalProcessingPolicy.swift`
+  - [x] Full entry processing (title, mood, tags, image prompt)
+  - [x] Persona-aware prompting
+  - [x] Visual preference integration
+  - [x] Avatar style suggestion
 
-#### 6.4 Prompt Templates
-- [ ] Create `Core/Services/AI/Prompts/`
-  - [ ] `PersonaAvatarPrompt.swift`
-  - [ ] `JournalImagePrompt.swift`
-  - [ ] `MoodAnalysisPrompt.swift`
-  - [ ] `TitleGenerationPrompt.swift`
-  - [ ] `ReflectionPrompt.swift`
+#### 6.4 GeminiService ✅
+- [x] Create `Core/Services/AI/GeminiService.swift`
+  - [x] Core API client for Vercel backend
+  - [x] Request/response handling with Codable
+  - [x] Retry logic with exponential backoff
+  - [x] Error mapping from HTTP status codes
+  - [x] Convenience methods: analyzeMood, generateTitle, enhanceEntry
+  - [x] processJournalEntry, generateImage, generateReflection
+  - [x] Environment key for SwiftUI injection
+
+#### 6.5 Services ✅
+- [x] Create `Core/Services/AI/ImageGenerationService.swift`
+  - [x] Persona avatar generation by style
+  - [x] Journal entry image generation
+  - [x] Progress tracking
+  - [x] Image caching (NSCache)
+  - [x] Subscription quota integration
+- [x] Create `Core/Services/AI/MoodAnalysisService.swift`
+  - [x] AI mood analysis
+  - [x] Local fallback detection
+  - [x] Batch analysis for multiple entries
+  - [x] Mood distribution calculation
+  - [x] Analysis caching
+- [x] Create `Core/Services/AI/ReflectionService.swift`
+  - [x] Timeframe-based reflections
+  - [x] Daily insight generation
+  - [x] Weekly/monthly summaries
+  - [x] Streak calculation
+  - [x] Mood trend analysis
+  - [x] Reflection caching
+- [x] Create `Core/Services/AI/TitleGenerationService.swift`
+  - [x] AI title generation
+  - [x] Local fallback title generation
+  - [x] Entry enhancement
+  - [x] Full journal processing
+
+#### 6.6 Constants Update ✅
+- [x] Update `Core/Utilities/Constants.swift`
+  - [x] AI.baseURL placeholder for Vercel backend
+  - [x] AI.modelId for Gemini 2.5 Flash
+  - [x] AI.Timeouts (default, textGeneration, imageGeneration, reflection)
+  - [x] AI.Endpoints for all API routes
+  - [x] AI.Limits (content lengths, prompt lengths)
+
+### Files Created
+```
+InkFiction/
+├── Core/
+│   ├── Services/
+│   │   └── AI/
+│   │       ├── GeminiService.swift
+│   │       ├── ImageGenerationService.swift
+│   │       ├── MoodAnalysisService.swift
+│   │       ├── ReflectionService.swift
+│   │       ├── TitleGenerationService.swift
+│   │       ├── Models/
+│   │       │   ├── AIModels.swift
+│   │       │   └── AIError.swift
+│   │       └── Prompts/
+│   │           ├── PromptPolicy.swift
+│   │           ├── PromptManager.swift
+│   │           └── Policies/
+│   │               ├── MoodAnalysisPolicy.swift
+│   │               ├── TitleGenerationPolicy.swift
+│   │               ├── JournalEnhancementPolicy.swift
+│   │               ├── JournalImagePolicy.swift
+│   │               ├── PersonaAvatarPolicy.swift
+│   │               ├── ReflectionPolicy.swift
+│   │               └── JournalProcessingPolicy.swift
+│   └── Utilities/
+│       └── Constants.swift (updated)
+└── Features/
+    └── Subscription/
+        └── ... (SubscriptionService updated with AI quota methods)
+```
+
+### Build Verification
+- [x] `fastlane build` - ✅ Build Succeeded
+
+### Backend Required (Vercel)
+The iOS client is ready. Backend implementation needed:
+- `/api/ai/analyze-mood` - Mood analysis endpoint
+- `/api/ai/generate-title` - Title generation endpoint
+- `/api/ai/enhance-entry` - Entry enhancement endpoint
+- `/api/ai/generate-image` - Image generation endpoint
+- `/api/ai/generate-reflection` - Reflection generation endpoint
+- `/api/ai/process-journal` - Full journal processing endpoint
+- `/api/ai/generate-persona-bio` - Persona bio generation endpoint
 
 ### Reference Files (Old Project)
 | New File | Reference From |
 |----------|---------------|
-| `GeminiService.swift` | `ink-snap/InkFiction/Core/Services/Gemini/` |
-| `ImageGenerationService.swift` | `ink-snap/InkFiction/Core/Services/AI/` |
-| `MoodAnalysisService.swift` | `ink-snap/InkFiction/Features/Reflect/Services/MoodAnalysisService.swift` |
+| `GeminiService.swift` | `ink-snap/InkFiction/Core/Services/Gemini/GeminiAPIService.swift` |
+| `ImageGenerationService.swift` | `ink-snap/InkFiction/Core/Services/AI/AIImageService.swift` |
+| `MoodAnalysisService.swift` | `ink-snap/InkFiction/Features/Reflect/ViewModels/ReflectViewModel.swift` |
+| `PromptManager.swift` | `ink-snap/InkFiction/Core/Services/Prompts/PromptManager.swift` |
+| `PromptPolicy.swift` | `ink-snap/InkFiction/Core/Services/Prompts/Policies/` |
 
 ---
 
@@ -1658,7 +1781,7 @@ Configuration/
 | **3** | **Onboarding Flow** | **High** | ✅ Completed |
 | **4** | Persona Feature | High | Pending |
 | **5** | **Journal Feature** | **Critical** | ✅ Completed |
-| **6** | AI Integration | High | Pending |
+| **6** | **AI Integration** | **High** | ✅ Completed |
 | **7** | **Timeline & Analytics** | **Medium** | ✅ Completed |
 | **8** | **Insights & Reflect** | **Medium** | ✅ Completed |
 | **9** | Settings | Medium | Pending |
@@ -1683,3 +1806,4 @@ Configuration/
 | 1.8 | 2025-12-03 | **Phase 5 Completed** - Full Journal feature implementation. Models: JournalEntry (domain model), JournalImage, JournalFilterModels (DateRangeFilter, JournalFilterState, JournalSortOrder). Views: JournalListView (list with swipe actions, multi-selection, archive toggle), JournalEditorSheet (entry creation/editing), JournalEntryDetailView. ViewModels: JournalListViewModel (filtering, sorting, bulk operations, incremental search), JournalEditorViewModel (CRUD, image/tag management). Components: JournalEntryCard, ExpandableSearchBar (debounced, date filter), MoodSelectorView (animated grid), TagChip (flow layout), CustomDateRangePickerView. RootView updated to use JournalListView with proper editor sheet handling. Build verified. |
 | 1.9 | 2025-12-03 | **Phase 8 Completed** - Full Reflect feature with organic mood orb visualization. Components: GlassmorphicMoodOrb (floating animation, glow effects, rim rotation), OrganicMoodOrbCluster (force-directed physics, collision detection, golden angle distribution), GradientBackground (animated layers, glass overlay). Views: ReflectView (AnimatedGradientBackground, NavigationHeaderView with menu, OrganicMoodOrbCluster, empty state), MoodDetailSheet (stats, visual memories, recent entries, image gallery), ReflectMoodDistributionView. Models: MoodData, MoodReflection, ReflectionConfig, TimeFrame, MoodDetectionKeywords, SentimentAnalysis. ViewModel: ReflectViewModel (mood analysis, keyword scoring, sentiment intensity, timeframe filtering). Updated NavigationHeaderView with menu/toggle button types. Added analytics and moodAnalysis log categories. Build verified. |
 | 2.0 | 2025-12-04 | **Phase 10 Completed** - Full Subscription & StoreKit implementation. StoreKit Config: InkFictionSubscriptions.storekit with 4 products (Enhanced/Premium × Monthly/Yearly), 7-day trial for Enhanced. Models: SubscriptionTier (free/enhanced/premium with gradients), SubscriptionPolicy (tier limits, feature flags, retention offers), SubscriptionPricing (pricing, product IDs). Services: StoreKitManager (StoreKit 2, purchase/restore, transaction listener), SubscriptionService (entitlements, usage tracking, daily reset), PaywallDisplayManager (exponential backoff, context-aware). Views: PaywallView (hero, mood orb showcase, features, plan cards, trial banner, trust badges), PaywallViewModel (purchase flow, restore). Components: PlanCard (4 styles), FeatureRow, PricingToggleView, UpgradeButton, RestorePurchasesButton, TrialOfferBanner. App integration: RootView paywall sheet, Settings subscription section with debug controls. Build verified. |
+| 2.1 | 2025-12-04 | **Phase 6 Completed** - Full AI Integration for Gemini 2.5 Flash via Vercel backend. Models: AIModels (request/response types, operation enums, context), AIError (comprehensive error handling). Prompt System: PromptPolicy protocol, PromptManager coordinator, 7 prompt policies (MoodAnalysis, TitleGeneration, JournalEnhancement, JournalImage, PersonaAvatar, Reflection, JournalProcessing). Services: GeminiService (core API client, retry logic), ImageGenerationService (avatar/journal images, caching, quota), MoodAnalysisService (AI + local fallback, batch analysis), ReflectionService (timeframe reflections, streak calculation), TitleGenerationService (titles, enhancement, full processing). Updated Constants with AI configuration, SubscriptionService with AI quota methods. iOS client ready; Vercel backend to be implemented separately. Build verified. |

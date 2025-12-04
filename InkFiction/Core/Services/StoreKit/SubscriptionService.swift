@@ -68,9 +68,42 @@ final class SubscriptionService {
 
     // MARK: - AI Image Generation
 
+    var dailyJournalImageLimit: Int {
+        limits.dailyAIImageGenerations == -1 ? 999 : limits.dailyAIImageGenerations
+    }
+
+    var dailyPersonaAvatarLimit: Int {
+        limits.maxPersonaStyles == -1 ? 999 : limits.maxPersonaStyles
+    }
+
+    var remainingJournalImages: Int {
+        getRemainingJournalImages()
+    }
+
+    var remainingPersonaAvatars: Int {
+        if limits.maxPersonaStyles == -1 { return 999 }
+        return max(0, limits.maxPersonaStyles - personaImagesUsedThisPeriod)
+    }
+
     func canGenerateJournalImage() -> Bool {
         checkAndResetDailyUsageIfNeeded()
         return limits.canGenerateAIImage(currentUsage: dailyJournalImagesUsed)
+    }
+
+    func canGeneratePersonaAvatar() -> Bool {
+        if limits.maxPersonaStyles == -1 { return true }
+        if limits.maxPersonaStyles == 0 { return false }
+        return personaImagesUsedThisPeriod < limits.maxPersonaStyles
+    }
+
+    func recordJournalImageGeneration() {
+        incrementJournalImageUsage()
+    }
+
+    func recordPersonaAvatarGeneration() {
+        personaImagesUsedThisPeriod += 1
+        saveUsageToDefaults()
+        Log.info("Persona avatar usage: \(personaImagesUsedThisPeriod)/\(limits.maxPersonaStyles)", category: .subscription)
     }
 
     func validateJournalImageGeneration() -> (allowed: Bool, reason: SubscriptionPolicy.UpgradeContext?) {
