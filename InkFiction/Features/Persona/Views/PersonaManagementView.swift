@@ -36,8 +36,8 @@ struct PersonaManagementView: View {
                     config: NavigationHeaderConfig(
                         title: navigationTitle,
                         leftButton: .back(action: { router.pop() }),
-                        rightButton: subscriptionService.currentTier != .free && personaRepository.currentPersona != nil
-                            ? .icon("pencil", action: { /* Edit action */ })
+                        rightButton: subscriptionService.currentTier != .free
+                            ? .icon("plus", action: { router.showPersonaCreation() })
                             : .none
                     ),
                     scrollOffset: scrollOffset
@@ -169,7 +169,11 @@ struct PersonaManagementView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.3))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
         )
     }
 
@@ -244,7 +248,7 @@ struct PersonaManagementView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.7 : 0.25))
         )
     }
 
@@ -287,148 +291,172 @@ struct PersonaManagementView: View {
     // MARK: - Paid Tier Management
 
     private var paidTierManagementContent: some View {
-        VStack(spacing: 24) {
-            // Hero avatar section
-            paidHeroSection
+        VStack(spacing: 16) {
+            // Compact persona header
+            if personaRepository.currentPersona != nil {
+                compactPersonaHeader
+                    .padding(.horizontal, 20)
+            } else {
+                noPersonaPlaceholder
+                    .padding(.horizontal, 20)
+            }
 
-            // Avatar styles carousel
+            // Avatar styles Polaroid carousel - maximized area
             if !personaImages.isEmpty {
                 avatarStylesCarousel
             }
 
-            // Create new style button
-            createNewStyleButton
-
             // Tips section
             tipsSection
+                .padding(.horizontal, 20)
 
             Spacer(minLength: 40)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .padding(.top, 12)
     }
 
-    private var paidHeroSection: some View {
-        VStack(spacing: 20) {
+    // MARK: - Compact Persona Header
+
+    private var compactPersonaHeader: some View {
+        HStack(spacing: 16) {
+            // Small avatar with gradient border
             ZStack {
-                // Gradient glow
                 Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                subscriptionService.currentTier.primaryGradientColor.opacity(0.4),
-                                Color.clear
-                            ],
-                            center: .center,
-                            startRadius: 60,
-                            endRadius: 140
-                        )
-                    )
-                    .frame(width: 240, height: 240)
-                    .blur(radius: 40)
+                    .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.9 : 0.3))
+                    .frame(width: 56, height: 56)
 
-                // Avatar circle
-                ZStack {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 160, height: 160)
-
-                    if let persona = personaRepository.currentPersona,
-                       let avatarImage = persona.activeAvatarImage {
-                        Image(uiImage: avatarImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 160, height: 160)
-                            .clipShape(Circle())
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 70))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: subscriptionService.currentTier.uiGradientColors,
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-
-                    // Border
-                    Circle()
-                        .stroke(
+                if let persona = personaRepository.currentPersona,
+                   let avatarImage = persona.activeAvatarImage {
+                    Image(uiImage: avatarImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 56)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(
                             LinearGradient(
                                 colors: subscriptionService.currentTier.uiGradientColors,
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 4
+                            )
                         )
-                        .frame(width: 160, height: 160)
                 }
-                .shadow(
-                    color: subscriptionService.currentTier.primaryGradientColor.opacity(0.3),
-                    radius: 20,
-                    x: 0,
-                    y: 10
-                )
 
-                // Tier badge
-                VStack {
-                    HStack {
-                        Spacer()
-                        ZStack {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 36, height: 36)
-
-                            Image(systemName: subscriptionService.currentTier.badgeIcon)
-                                .font(.system(size: 16))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: subscriptionService.currentTier.uiGradientColors,
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                    }
-                    Spacer()
-                }
-                .frame(width: 160, height: 160)
+                // Gradient border
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: subscriptionService.currentTier.uiGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2.5
+                    )
+                    .frame(width: 56, height: 56)
             }
+            .shadow(
+                color: subscriptionService.currentTier.primaryGradientColor.opacity(0.2),
+                radius: 8,
+                x: 0,
+                y: 4
+            )
 
             // Persona info
             if let persona = personaRepository.currentPersona {
-                VStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(persona.name)
-                        .font(.title2)
+                        .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(themeManager.currentTheme.textPrimaryColor)
 
-                    Text("\(persona.avatars?.count ?? 0) avatar styles")
-                        .font(.subheadline)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    HStack(spacing: 12) {
+                        Label("\(persona.avatars?.count ?? 0) styles", systemImage: "paintpalette")
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
 
-                    Text("Created \(formatLastUpdate(persona.updatedAt))")
-                        .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                }
-            } else {
-                VStack(spacing: 8) {
-                    Text("No Persona Yet")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+                        Text("•")
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
 
-                    Text("Create your first persona to get started")
-                        .font(.subheadline)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                        Text(formatLastUpdate(persona.updatedAt))
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    }
                 }
             }
+
+            Spacer()
+
+            // Tier badge
+            ZStack {
+                Circle()
+                    .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.95 : 0.4))
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: subscriptionService.currentTier.badgeIcon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: subscriptionService.currentTier.uiGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
+        )
     }
 
+    private var noPersonaPlaceholder: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "person.crop.circle.badge.plus")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: themeManager.currentTheme.gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .symbolRenderingMode(.hierarchical)
+
+            VStack(spacing: 4) {
+                Text("No Persona Yet")
+                    .font(.headline)
+                    .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+
+                Text("Create your first persona to get started")
+                    .font(.subheadline)
+                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
+        )
+    }
+
+    // MARK: - Polaroid Carousel
+
     private var avatarStylesCarousel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
+            // Header
             HStack {
                 Text("Your Styles")
                     .font(.headline)
@@ -439,83 +467,24 @@ struct PersonaManagementView: View {
                 Text("\(personaImages.count) styles")
                     .font(.caption)
                     .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-            }
-
-            TabView(selection: $selectedAvatarIndex) {
-                ForEach(Array(personaImages.enumerated()), id: \.element.id) { index, container in
-                    AvatarStyleCard(
-                        container: container,
-                        isActive: index == 0, // First is active
-                        themeManager: themeManager,
-                        onDelete: { handleDeleteAvatarStyle(container) },
-                        onSelect: { selectAvatarStyle(container) }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.7 : 0.3))
                     )
-                    .tag(index)
-                }
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
-            .frame(height: 200)
+            .padding(.horizontal, 20)
+
+            // Polaroid carousel - full width, maximized height
+            PolaroidCarousel(
+                images: personaImages,
+                onDelete: { container in
+                    handleDeleteAvatarStyle(container)
+                }
+            )
+            .frame(height: 380)
             .id(imageUpdateID)
-        }
-    }
-
-    private var createNewStyleButton: some View {
-        Button(action: { router.showPersonaCreation() }) {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: themeManager.currentTheme.gradientColors.map { $0.opacity(0.2) },
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: themeManager.currentTheme.gradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(personaRepository.currentPersona != nil ? "Add New Style" : "Create Persona")
-                        .font(.headline)
-                        .foregroundColor(themeManager.currentTheme.textPrimaryColor)
-
-                    Text("Generate a new avatar variation")
-                        .font(.caption)
-                        .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(
-                        LinearGradient(
-                            colors: themeManager.currentTheme.gradientColors.map { $0.opacity(0.3) },
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        lineWidth: 1.5
-                    )
-            )
         }
     }
 
@@ -534,7 +503,11 @@ struct PersonaManagementView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
         )
     }
 
@@ -638,113 +611,3 @@ struct PersonaManagementView: View {
     }
 }
 
-// MARK: - Avatar Style Card
-
-struct AvatarStyleCard: View {
-    let container: ImageContainer
-    let isActive: Bool
-    let themeManager: ThemeManager
-    var onDelete: (() -> Void)?
-    var onSelect: (() -> Void)?
-
-    @State private var showActions = false
-
-    var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                // Image
-                Image(uiImage: container.uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 120, height: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(
-                                isActive
-                                    ? themeManager.currentTheme.accentColor
-                                    : Color.clear,
-                                lineWidth: 3
-                            )
-                    )
-                    .shadow(
-                        color: isActive
-                            ? themeManager.currentTheme.accentColor.opacity(0.3)
-                            : Color.black.opacity(0.1),
-                        radius: isActive ? 12 : 6,
-                        x: 0,
-                        y: isActive ? 6 : 3
-                    )
-
-                // Active badge
-                if isActive {
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(themeManager.currentTheme.accentColor)
-                                .background(
-                                    Circle()
-                                        .fill(.white)
-                                        .frame(width: 18, height: 18)
-                                )
-                        }
-                        Spacer()
-                    }
-                    .frame(width: 120, height: 120)
-                    .padding(4)
-                }
-
-                // Delete button on long press
-                if showActions, let onDelete = onDelete {
-                    VStack {
-                        HStack {
-                            Button(action: onDelete) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.red)
-                                    .background(
-                                        Circle()
-                                            .fill(.white)
-                                            .frame(width: 22, height: 22)
-                                    )
-                            }
-                            Spacer()
-                        }
-                        Spacer()
-                    }
-                    .frame(width: 120, height: 120)
-                    .padding(4)
-                    .transition(.scale.combined(with: .opacity))
-                }
-            }
-            .onTapGesture {
-                if showActions {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        showActions = false
-                    }
-                } else {
-                    onSelect?()
-                }
-            }
-            .onLongPressGesture {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    showActions = true
-                }
-            }
-
-            // Caption
-            if let caption = container.caption {
-                Text(caption.components(separatedBy: " ").first ?? "")
-                    .font(.caption)
-                    .fontWeight(isActive ? .semibold : .regular)
-                    .foregroundColor(
-                        isActive
-                            ? themeManager.currentTheme.accentColor
-                            : themeManager.currentTheme.textSecondaryColor
-                    )
-            }
-        }
-    }
-}

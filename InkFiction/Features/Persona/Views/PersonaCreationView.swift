@@ -240,7 +240,7 @@ struct PersonaCreationView: View {
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(.ultraThinMaterial)
+                            .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.6 : 0.2))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
@@ -255,7 +255,11 @@ struct PersonaCreationView: View {
             .padding()
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
+                    .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
             )
 
             // Image selection
@@ -320,7 +324,11 @@ struct PersonaCreationView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
+                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
         )
     }
 
@@ -376,7 +384,11 @@ struct PersonaCreationView: View {
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(.ultraThinMaterial)
+                        .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(themeManager.currentTheme.strokeColor, lineWidth: 1)
                 )
             }
         }
@@ -388,7 +400,7 @@ struct PersonaCreationView: View {
         VStack(spacing: 0) {
             // Glass divider
             Rectangle()
-                .fill(.ultraThinMaterial)
+                .fill(themeManager.currentTheme.dividerColor)
                 .frame(height: 1)
 
             HStack(spacing: 12) {
@@ -404,7 +416,7 @@ struct PersonaCreationView: View {
                         .padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 14)
-                                .fill(.ultraThinMaterial)
+                                .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.3))
                         )
                     }
                     .frame(maxWidth: 120)
@@ -435,7 +447,7 @@ struct PersonaCreationView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(.ultraThinMaterial)
+            .background(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.95 : 0.5))
         }
     }
 
@@ -944,7 +956,7 @@ struct PersonaImageCarouselView: View {
                     .padding(.vertical, 8)
                     .background(
                         Capsule()
-                            .fill(.ultraThinMaterial)
+                            .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.3))
                     )
                 }
             }
@@ -978,7 +990,7 @@ struct PhotoPickerCard: View {
                         .blur(radius: 20)
 
                     Circle()
-                        .fill(.ultraThinMaterial)
+                        .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.9 : 0.3))
                         .frame(width: 100, height: 100)
 
                     Image(systemName: "photo.badge.plus")
@@ -1006,7 +1018,7 @@ struct PhotoPickerCard: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial)
+                    .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.8 : 0.25))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
@@ -1038,7 +1050,7 @@ struct GenerationProgressOverlay: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 20)
-            .fill(.ultraThinMaterial)
+            .fill(themeManager.currentTheme.surfaceColor.opacity(themeManager.currentTheme.isLight ? 0.95 : 0.8))
             .overlay(
                 VStack(spacing: 24) {
                     // Animated icon

@@ -33,7 +33,16 @@ final class StoreKitManager: ObservableObject {
     // MARK: - Initialization
 
     private init() {
+        // First, load persisted state for immediate UI display
+        loadPersistedSubscriptionState()
+
+        // Start listening for transaction updates
         updateListenerTask = listenForTransactions()
+
+        // Verify subscription status against StoreKit (async)
+        Task {
+            await updateSubscriptionStatus()
+        }
     }
 
     deinit {
@@ -273,10 +282,13 @@ final class StoreKitManager: ObservableObject {
     }
 
     func loadPersistedSubscriptionState() {
+        Log.info("Loading persisted subscription state...", category: .subscription)
+
         if let tierRaw = UserDefaults.standard.string(forKey: UserDefaultsKeys.subscriptionTier),
             let tier = SubscriptionTier(rawValue: tierRaw)
         {
             subscriptionTier = tier
+            Log.info("Loaded persisted tier: \(tier.displayName)", category: .subscription)
         }
 
         subscriptionExpiresAt = UserDefaults.standard.object(
@@ -292,11 +304,14 @@ final class StoreKitManager: ObservableObject {
         // Validate expiration
         if let expiresAt = subscriptionExpiresAt, expiresAt < Date() {
             // Subscription has expired
+            Log.info("Persisted subscription expired at \(expiresAt), resetting to free", category: .subscription)
             subscriptionTier = .free
             subscriptionExpiresAt = nil
             activeProductID = nil
             persistSubscriptionState(
                 tier: .free, expiresAt: nil, productID: nil, billingPeriod: .monthly)
+        } else if let expiresAt = subscriptionExpiresAt {
+            Log.info("Subscription valid until: \(expiresAt)", category: .subscription)
         }
     }
 
