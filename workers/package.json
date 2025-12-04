@@ -1,0 +1,24 @@
+{
+  "name": "inkfiction-workers",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers for InkFiction AI services",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:text": "wrangler dev --config wrangler.text.toml",
+    "dev:image": "wrangler dev --config wrangler.image.toml",
+    "deploy:text": "wrangler deploy --config wrangler.text.toml",
+    "deploy:image": "wrangler deploy --config wrangler.image.toml",
+    "deploy:all": "npm run deploy:text && npm run deploy:image",
+    "types": "wrangler types"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251202.0",
+    "@google/genai": "^1.31.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.52.1"
+  }
+}
