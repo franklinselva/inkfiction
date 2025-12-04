@@ -276,9 +276,9 @@ struct MainTabView: View {
         case .subscription:
             SubscriptionStatusView()
         case .aiFeatures:
-            Text("AI Features - Coming Soon")
+            AIFeaturesView()
         case .export:
-            Text("Export - Coming Soon")
+            ExportView()
         }
     }
 

@@ -10,6 +10,7 @@ import SwiftUI
 struct DataStorageView: View {
     @Environment(\.themeManager) private var themeManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(Router.self) private var router
     @State private var viewModel = DataStorageViewModel()
     @State private var scrollOffset: CGFloat = 0
 
@@ -263,6 +264,39 @@ struct DataStorageView: View {
                 .padding(.horizontal, 4)
 
             VStack(spacing: 0) {
+                // Export Data
+                Button {
+                    router.push(.settingsSection(section: .export))
+                } label: {
+                    HStack {
+                        HStack(spacing: 12) {
+                            Image(systemName: "square.and.arrow.up.fill")
+                                .font(.body)
+                                .foregroundColor(.blue)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Export Data")
+                                    .font(.body)
+                                    .foregroundColor(themeManager.currentTheme.textPrimaryColor)
+                                Text("Download your journal as CSV and images")
+                                    .font(.caption)
+                                    .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                            }
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                    }
+                    .padding()
+                }
+
+                Divider()
+                    .background(themeManager.currentTheme.textSecondaryColor.opacity(0.2))
+
                 // Clear All Data
                 Button {
                     viewModel.showingClearDataAlert = true
@@ -469,4 +503,5 @@ final class DataStorageViewModel {
 #Preview {
     DataStorageView()
         .environment(\.themeManager, ThemeManager())
+        .environment(Router())
 }

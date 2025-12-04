@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.themeManager) private var themeManager
     @Environment(Router.self) private var router
+    @Environment(AppState.self) private var appState
     @State private var viewModel = SettingsViewModel()
     @State private var scrollOffset: CGFloat = 0
 
@@ -23,7 +24,9 @@ struct SettingsView: View {
                 NavigationHeaderView(
                     config: NavigationHeaderConfig(
                         title: "Settings",
-                        leftButton: .avatar(action: {}),
+                        leftButton: .avatar(action: {
+                            router.present(sheet: .personaDetail)
+                        }),
                         rightButton: .none
                     ),
                     scrollOffset: scrollOffset
@@ -386,16 +389,12 @@ struct SettingsView: View {
 
             VStack(spacing: 12) {
                 Button("Reset Onboarding") {
-                    if let appState = getAppState() {
-                        appState.hasCompletedOnboarding = false
-                    }
+                    appState.hasCompletedOnboarding = false
                 }
                 .foregroundColor(themeManager.currentTheme.accentColor)
 
                 Button("Lock App") {
-                    if let appState = getAppState() {
-                        appState.lock()
-                    }
+                    appState.lock()
                 }
                 .foregroundColor(themeManager.currentTheme.accentColor)
 
@@ -413,12 +412,6 @@ struct SettingsView: View {
             .gradientCard()
         }
     }
-
-    private func getAppState() -> AppState? {
-        // This is a workaround to get AppState from environment
-        // In a real implementation, you'd inject this properly
-        return nil
-    }
     #endif
 }
 
@@ -426,4 +419,5 @@ struct SettingsView: View {
     SettingsView()
         .environment(\.themeManager, ThemeManager())
         .environment(Router())
+        .environment(AppState())
 }

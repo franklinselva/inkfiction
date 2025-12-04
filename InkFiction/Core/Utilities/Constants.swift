@@ -36,6 +36,11 @@ enum Constants {
         static let dailyReminderTime = "dailyReminderTime"
         static let aiAutoEnhanceEnabled = "aiAutoEnhanceEnabled"
         static let aiAutoTitleEnabled = "aiAutoTitleEnabled"
+        // Journal Preferences
+        static let journalingStyle = "journalingStyle"
+        static let emotionalExpression = "emotionalExpression"
+        static let visualPreference = "visualPreference"
+        static let selectedCompanionId = "selectedCompanionId"
     }
 
     // MARK: - API

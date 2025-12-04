@@ -82,6 +82,49 @@ final class SettingsRepository {
         currentSettings?.aiAutoTitle ?? UserDefaults.standard.bool(forKey: Constants.UserDefaultsKeys.aiAutoTitleEnabled)
     }
 
+    /// Current journaling style
+    var journalingStyle: JournalingStyle {
+        if let raw = currentSettings?.journalingStyleRaw {
+            return JournalingStyle(rawValue: raw) ?? .quickNotes
+        }
+        if let raw = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.journalingStyle) {
+            return JournalingStyle(rawValue: raw) ?? .quickNotes
+        }
+        return .quickNotes
+    }
+
+    /// Current emotional expression preference
+    var emotionalExpression: EmotionalExpression {
+        if let raw = currentSettings?.emotionalExpressionRaw {
+            return EmotionalExpression(rawValue: raw) ?? .writingFreely
+        }
+        if let raw = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.emotionalExpression) {
+            return EmotionalExpression(rawValue: raw) ?? .writingFreely
+        }
+        return .writingFreely
+    }
+
+    /// Current visual preference
+    var visualPreference: VisualPreference {
+        if let raw = currentSettings?.visualPreferenceRaw {
+            return VisualPreference(rawValue: raw) ?? .abstractDreamy
+        }
+        if let raw = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.visualPreference) {
+            return VisualPreference(rawValue: raw) ?? .abstractDreamy
+        }
+        return .abstractDreamy
+    }
+
+    /// Selected AI companion ID
+    var selectedCompanionId: String {
+        currentSettings?.selectedCompanionId ?? UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.selectedCompanionId) ?? "realist"
+    }
+
+    /// Selected AI companion
+    var selectedCompanion: AICompanion {
+        AICompanion.all.first { $0.id == selectedCompanionId } ?? .realist
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -96,7 +139,56 @@ final class SettingsRepository {
 
     // MARK: - CRUD Operations
 
-    /// Load settings from storage
+    /// Load settings from local storage only (does not create defaults)
+    /// Returns true if settings were found locally
+    func loadSettingsFromLocal() async throws -> Bool {
+        guard let context = modelContext else {
+            throw SettingsRepositoryError.modelContextNotAvailable
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        Log.debug("Loading settings from local storage", category: .settings)
+
+        let descriptor = FetchDescriptor<AppSettingsModel>()
+
+        do {
+            let settings = try context.fetch(descriptor)
+
+            if let existingSettings = settings.first {
+                currentSettings = existingSettings
+                syncToUserDefaults()
+                Log.info("Settings loaded from SwiftData", category: .settings)
+                return true
+            } else {
+                Log.debug("No local settings found", category: .settings)
+                return false
+            }
+        } catch {
+            Log.error("Failed to load settings from local", error: error, category: .settings)
+            throw SettingsRepositoryError.saveFailed(error)
+        }
+    }
+
+    /// Create default settings (only call if no local or iCloud settings exist)
+    func createDefaultSettings() async throws {
+        guard let context = modelContext else {
+            throw SettingsRepositoryError.modelContextNotAvailable
+        }
+
+        Log.info("Creating default settings", category: .settings)
+
+        let defaultSettings = AppSettingsModel.default
+        context.insert(defaultSettings)
+        try context.save()
+        currentSettings = defaultSettings
+        syncToUserDefaults()
+
+        Log.info("Default settings created", category: .settings)
+    }
+
+    /// Load settings from storage (legacy method, creates defaults if none exist)
     func loadSettings() async throws {
         guard let context = modelContext else {
             throw SettingsRepositoryError.modelContextNotAvailable
@@ -220,6 +312,69 @@ final class SettingsRepository {
         try await saveSettings()
     }
 
+    /// Set journaling style
+    func setJournalingStyle(_ style: JournalingStyle) async throws {
+        guard currentSettings != nil else {
+            throw SettingsRepositoryError.settingsNotFound
+        }
+
+        Log.debug("Setting journaling style: \(style.rawValue)", category: .settings)
+        currentSettings?.journalingStyleRaw = style.rawValue
+        try await saveSettings()
+    }
+
+    /// Set emotional expression
+    func setEmotionalExpression(_ expression: EmotionalExpression) async throws {
+        guard currentSettings != nil else {
+            throw SettingsRepositoryError.settingsNotFound
+        }
+
+        Log.debug("Setting emotional expression: \(expression.rawValue)", category: .settings)
+        currentSettings?.emotionalExpressionRaw = expression.rawValue
+        try await saveSettings()
+    }
+
+    /// Set visual preference
+    func setVisualPreference(_ preference: VisualPreference) async throws {
+        guard currentSettings != nil else {
+            throw SettingsRepositoryError.settingsNotFound
+        }
+
+        Log.debug("Setting visual preference: \(preference.rawValue)", category: .settings)
+        currentSettings?.visualPreferenceRaw = preference.rawValue
+        try await saveSettings()
+    }
+
+    /// Set selected companion
+    func setSelectedCompanion(_ companion: AICompanion) async throws {
+        guard currentSettings != nil else {
+            throw SettingsRepositoryError.settingsNotFound
+        }
+
+        Log.debug("Setting selected companion: \(companion.id)", category: .settings)
+        currentSettings?.selectedCompanionId = companion.id
+        try await saveSettings()
+    }
+
+    /// Update all journal preferences at once
+    func updateJournalPreferences(
+        journalingStyle: JournalingStyle,
+        emotionalExpression: EmotionalExpression,
+        visualPreference: VisualPreference,
+        companion: AICompanion
+    ) async throws {
+        guard currentSettings != nil else {
+            throw SettingsRepositoryError.settingsNotFound
+        }
+
+        Log.debug("Updating all journal preferences", category: .settings)
+        currentSettings?.journalingStyleRaw = journalingStyle.rawValue
+        currentSettings?.emotionalExpressionRaw = emotionalExpression.rawValue
+        currentSettings?.visualPreferenceRaw = visualPreference.rawValue
+        currentSettings?.selectedCompanionId = companion.id
+        try await saveSettings()
+    }
+
     /// Mark onboarding as completed
     func completeOnboarding() async throws {
         guard currentSettings != nil else {
@@ -277,6 +432,11 @@ final class SettingsRepository {
         defaults.set(settings.notificationsEnabled, forKey: Constants.UserDefaultsKeys.notificationsEnabled)
         defaults.set(settings.aiAutoEnhance, forKey: Constants.UserDefaultsKeys.aiAutoEnhanceEnabled)
         defaults.set(settings.aiAutoTitle, forKey: Constants.UserDefaultsKeys.aiAutoTitleEnabled)
+        // Journal Preferences
+        defaults.set(settings.journalingStyleRaw, forKey: Constants.UserDefaultsKeys.journalingStyle)
+        defaults.set(settings.emotionalExpressionRaw, forKey: Constants.UserDefaultsKeys.emotionalExpression)
+        defaults.set(settings.visualPreferenceRaw, forKey: Constants.UserDefaultsKeys.visualPreference)
+        defaults.set(settings.selectedCompanionId, forKey: Constants.UserDefaultsKeys.selectedCompanionId)
 
         if let reminderTime = settings.dailyReminderTime {
             defaults.set(reminderTime, forKey: Constants.UserDefaultsKeys.dailyReminderTime)
@@ -342,31 +502,36 @@ final class SettingsRepository {
             if let record = records.first,
                let remoteSettings = AppSettingsModel(from: record) {
 
-                // Check if settings exist locally
-                let remoteId = remoteSettings.id
-                let descriptor = FetchDescriptor<AppSettingsModel>(
-                    predicate: #Predicate<AppSettingsModel> { $0.id == remoteId }
-                )
+                // First check if we have ANY local settings
+                let allSettingsDescriptor = FetchDescriptor<AppSettingsModel>()
+                let allLocalSettings = try context.fetch(allSettingsDescriptor)
 
-                let existingSettings = try context.fetch(descriptor)
-
-                if let localSettings = existingSettings.first {
-                    // Use remote if newer (last-write-wins)
-                    if remoteSettings.updatedAt > localSettings.updatedAt {
-                        localSettings.themeId = remoteSettings.themeId
-                        localSettings.notificationsEnabled = remoteSettings.notificationsEnabled
-                        localSettings.dailyReminderTime = remoteSettings.dailyReminderTime
-                        localSettings.aiAutoEnhance = remoteSettings.aiAutoEnhance
-                        localSettings.aiAutoTitle = remoteSettings.aiAutoTitle
-                        localSettings.onboardingCompleted = remoteSettings.onboardingCompleted
-                        localSettings.updatedAt = remoteSettings.updatedAt
-                        localSettings.cloudKitRecordName = remoteSettings.cloudKitRecordName
-                        localSettings.lastSyncedAt = Date()
-                        localSettings.needsSync = false
+                if let existingLocalSettings = allLocalSettings.first {
+                    // We have local settings - check if remote is newer
+                    if remoteSettings.updatedAt > existingLocalSettings.updatedAt {
+                        existingLocalSettings.themeId = remoteSettings.themeId
+                        existingLocalSettings.notificationsEnabled = remoteSettings.notificationsEnabled
+                        existingLocalSettings.dailyReminderTime = remoteSettings.dailyReminderTime
+                        existingLocalSettings.aiAutoEnhance = remoteSettings.aiAutoEnhance
+                        existingLocalSettings.aiAutoTitle = remoteSettings.aiAutoTitle
+                        existingLocalSettings.onboardingCompleted = remoteSettings.onboardingCompleted
+                        // Journal Preferences
+                        existingLocalSettings.journalingStyleRaw = remoteSettings.journalingStyleRaw
+                        existingLocalSettings.emotionalExpressionRaw = remoteSettings.emotionalExpressionRaw
+                        existingLocalSettings.visualPreferenceRaw = remoteSettings.visualPreferenceRaw
+                        existingLocalSettings.selectedCompanionId = remoteSettings.selectedCompanionId
+                        existingLocalSettings.updatedAt = remoteSettings.updatedAt
+                        existingLocalSettings.cloudKitRecordName = remoteSettings.cloudKitRecordName
+                        existingLocalSettings.lastSyncedAt = Date()
+                        existingLocalSettings.needsSync = false
+                        Log.info("Updated local settings from iCloud (remote was newer)", category: .cloudKit)
                     }
-                    currentSettings = localSettings
-                } else if currentSettings == nil {
-                    // No local settings, use remote
+                    currentSettings = existingLocalSettings
+                } else {
+                    // No local settings at all - insert remote settings
+                    Log.info("No local settings found, restoring from iCloud", category: .cloudKit)
+                    remoteSettings.lastSyncedAt = Date()
+                    remoteSettings.needsSync = false
                     context.insert(remoteSettings)
                     currentSettings = remoteSettings
                 }
@@ -411,20 +576,57 @@ final class SettingsRepository {
     // MARK: - Warmup
 
     /// Warmup settings on app launch
+    /// Flow: Local → iCloud → Defaults
     func warmup() async {
         Log.info("Starting settings warmup", category: .settings)
 
         do {
-            try await loadSettings()
+            // Step 1: Try to load from local storage
+            let hasLocalSettings = try await loadSettingsFromLocal()
 
-            // Try to pull from CloudKit if available
-            if syncMonitor.canSync {
-                try? await pullFromCloudKit()
+            if hasLocalSettings {
+                Log.info("Settings found locally", category: .settings)
+
+                // If we have local settings, still try to sync with iCloud for updates
+                if syncMonitor.canSync {
+                    try? await pullFromCloudKit()
+                }
+            } else {
+                // Step 2: No local settings, try to fetch from iCloud
+                Log.info("No local settings, checking iCloud...", category: .settings)
+
+                var foundInCloud = false
+
+                if syncMonitor.canSync {
+                    do {
+                        try await pullFromCloudKit()
+                        // Check if we got settings from iCloud
+                        if currentSettings != nil {
+                            foundInCloud = true
+                            Log.info("Settings restored from iCloud", category: .settings)
+                        }
+                    } catch {
+                        Log.warning("Failed to fetch settings from iCloud: \(error.localizedDescription)", category: .cloudKit)
+                    }
+                }
+
+                // Step 3: If still no settings, create defaults
+                if !foundInCloud {
+                    Log.info("No settings in iCloud, creating defaults", category: .settings)
+                    try await createDefaultSettings()
+                }
             }
 
-            Log.info("Settings warmup completed", category: .settings)
+            Log.info("Settings warmup completed - onboardingCompleted: \(hasCompletedOnboarding)", category: .settings)
         } catch {
             Log.error("Settings warmup failed", error: error, category: .settings)
+
+            // Fallback: try to create defaults if warmup failed
+            do {
+                try await createDefaultSettings()
+            } catch {
+                Log.error("Failed to create default settings", error: error, category: .settings)
+            }
         }
     }
 
@@ -451,6 +653,13 @@ final class SettingsRepository {
         defaults.removeObject(forKey: Constants.UserDefaultsKeys.dailyReminderTime)
         defaults.removeObject(forKey: Constants.UserDefaultsKeys.aiAutoEnhanceEnabled)
         defaults.removeObject(forKey: Constants.UserDefaultsKeys.aiAutoTitleEnabled)
+        // Journal Preferences
+        defaults.removeObject(forKey: Constants.UserDefaultsKeys.journalingStyle)
+        defaults.removeObject(forKey: Constants.UserDefaultsKeys.emotionalExpression)
+        defaults.removeObject(forKey: Constants.UserDefaultsKeys.visualPreference)
+        defaults.removeObject(forKey: Constants.UserDefaultsKeys.selectedCompanionId)
+        // Legacy onboarding data
+        defaults.removeObject(forKey: "onboardingData")
 
         Log.info("All settings data cleared", category: .settings)
     }

@@ -71,6 +71,11 @@ extension Constants.iCloud {
             static let aiAutoTitle = "aiAutoTitle"
             static let onboardingCompleted = "onboardingCompleted"
             static let updatedAt = "updatedAt"
+            // Journal Preferences
+            static let journalingStyle = "journalingStyle"
+            static let emotionalExpression = "emotionalExpression"
+            static let visualPreference = "visualPreference"
+            static let selectedCompanionId = "selectedCompanionId"
         }
     }
 }

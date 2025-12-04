@@ -95,11 +95,15 @@ final class OnboardingViewModel {
         // Calculate time spent
         let timeSpent = Date().timeIntervalSince(startTime)
 
-        // Create saved data object
+        // Get personality profile for saving
+        let profile = getPersonalityProfile()
+        let companion = state.selectedCompanion ?? .realist
+
+        // Create saved data object (for legacy compatibility)
         let savedData = SavedOnboardingData(
             completedAt: Date(),
             quizAnswers: state.quizAnswers,
-            selectedCompanion: state.selectedCompanion ?? .realist,
+            selectedCompanion: companion,
             permissionsGranted: state.permissionsGranted,
             wasSkipped: state.isSkipped,
             skippedPermissions: skippedPermissions,
@@ -108,14 +112,9 @@ final class OnboardingViewModel {
             changedAnswers: changedAnswers
         )
 
-        // Save to UserDefaults
+        // Save to UserDefaults (legacy)
         if let jsonString = savedData.toJSONString() {
             UserDefaults.standard.set(jsonString, forKey: "onboardingData")
-        }
-
-        // Save companion ID separately for quick access
-        if let companion = state.selectedCompanion {
-            UserDefaults.standard.set(companion.id, forKey: "selectedCompanionId")
         }
 
         // Mark as completed
@@ -124,7 +123,19 @@ final class OnboardingViewModel {
 
         // Save to iCloud via settings repository
         do {
-            try await SettingsRepository.shared.completeOnboarding()
+            let settingsRepository = SettingsRepository.shared
+
+            // Save journal preferences to iCloud
+            try await settingsRepository.updateJournalPreferences(
+                journalingStyle: profile?.journalingStyle ?? .quickNotes,
+                emotionalExpression: profile?.emotionalExpression ?? .writingFreely,
+                visualPreference: profile?.visualPreference ?? .abstractDreamy,
+                companion: companion
+            )
+
+            // Mark onboarding as completed
+            try await settingsRepository.completeOnboarding()
+
             Log.info("Onboarding completed and saved to iCloud", category: .app)
         } catch {
             Log.error("Failed to save onboarding to iCloud", error: error, category: .app)
@@ -209,6 +220,10 @@ final class OnboardingViewModel {
         UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
         UserDefaults.standard.removeObject(forKey: "selectedCompanionId")
         UserDefaults.standard.removeObject(forKey: "onboardingData")
+        // Also clear new preference keys
+        UserDefaults.standard.removeObject(forKey: Constants.UserDefaultsKeys.journalingStyle)
+        UserDefaults.standard.removeObject(forKey: Constants.UserDefaultsKeys.emotionalExpression)
+        UserDefaults.standard.removeObject(forKey: Constants.UserDefaultsKeys.visualPreference)
 
         // Post notification
         NotificationCenter.default.post(name: .restartOnboarding, object: nil)

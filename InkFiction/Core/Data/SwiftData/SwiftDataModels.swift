@@ -24,7 +24,8 @@ final class JournalEntryModel {
     var title: String = ""
     var content: String = ""
     var moodRaw: String = "Neutral"
-    var tags: [String] = []
+    // Tags stored as comma-separated string for CoreData/CloudKit compatibility
+    var tagsRaw: String = ""
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     var isArchived: Bool = false
@@ -42,6 +43,17 @@ final class JournalEntryModel {
     var mood: Mood {
         get { Mood(rawValue: moodRaw) ?? .neutral }
         set { moodRaw = newValue.rawValue }
+    }
+
+    // Computed property for tags array access
+    var tags: [String] {
+        get {
+            guard !tagsRaw.isEmpty else { return [] }
+            return tagsRaw.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        }
+        set {
+            tagsRaw = newValue.joined(separator: ",")
+        }
     }
 
     init(
@@ -62,7 +74,7 @@ final class JournalEntryModel {
         self.title = title
         self.content = content
         self.moodRaw = mood.rawValue
-        self.tags = tags
+        self.tagsRaw = tags.joined(separator: ",")
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isArchived = isArchived
@@ -235,10 +247,32 @@ final class AppSettingsModel {
     var onboardingCompleted: Bool = false
     var updatedAt: Date = Date()
 
+    // Journal Preferences (from onboarding)
+    var journalingStyleRaw: String = "quick_notes"
+    var emotionalExpressionRaw: String = "writing_freely"
+    var visualPreferenceRaw: String = "abstract_dreamy"
+    var selectedCompanionId: String = "realist"
+
     // CloudKit sync tracking
     var cloudKitRecordName: String?
     var lastSyncedAt: Date?
     var needsSync: Bool = true
+
+    // Computed properties for type-safe access
+    var journalingStyle: JournalingStyle {
+        get { JournalingStyle(rawValue: journalingStyleRaw) ?? .quickNotes }
+        set { journalingStyleRaw = newValue.rawValue }
+    }
+
+    var emotionalExpression: EmotionalExpression {
+        get { EmotionalExpression(rawValue: emotionalExpressionRaw) ?? .writingFreely }
+        set { emotionalExpressionRaw = newValue.rawValue }
+    }
+
+    var visualPreference: VisualPreference {
+        get { VisualPreference(rawValue: visualPreferenceRaw) ?? .abstractDreamy }
+        set { visualPreferenceRaw = newValue.rawValue }
+    }
 
     init(
         id: UUID = UUID(),
@@ -249,6 +283,10 @@ final class AppSettingsModel {
         aiAutoTitle: Bool = true,
         onboardingCompleted: Bool = false,
         updatedAt: Date = Date(),
+        journalingStyleRaw: String = "quick_notes",
+        emotionalExpressionRaw: String = "writing_freely",
+        visualPreferenceRaw: String = "abstract_dreamy",
+        selectedCompanionId: String = "realist",
         cloudKitRecordName: String? = nil,
         lastSyncedAt: Date? = nil,
         needsSync: Bool = true
@@ -261,6 +299,10 @@ final class AppSettingsModel {
         self.aiAutoTitle = aiAutoTitle
         self.onboardingCompleted = onboardingCompleted
         self.updatedAt = updatedAt
+        self.journalingStyleRaw = journalingStyleRaw
+        self.emotionalExpressionRaw = emotionalExpressionRaw
+        self.visualPreferenceRaw = visualPreferenceRaw
+        self.selectedCompanionId = selectedCompanionId
         self.cloudKitRecordName = cloudKitRecordName
         self.lastSyncedAt = lastSyncedAt
         self.needsSync = needsSync
@@ -548,6 +590,11 @@ extension AppSettingsModel: CloudKitRecordConvertible {
         record.setBool(aiAutoTitle, for: Constants.iCloud.RecordFields.AppSettings.aiAutoTitle)
         record.setBool(onboardingCompleted, for: Constants.iCloud.RecordFields.AppSettings.onboardingCompleted)
         record[Constants.iCloud.RecordFields.AppSettings.updatedAt] = updatedAt
+        // Journal Preferences
+        record[Constants.iCloud.RecordFields.AppSettings.journalingStyle] = journalingStyleRaw
+        record[Constants.iCloud.RecordFields.AppSettings.emotionalExpression] = emotionalExpressionRaw
+        record[Constants.iCloud.RecordFields.AppSettings.visualPreference] = visualPreferenceRaw
+        record[Constants.iCloud.RecordFields.AppSettings.selectedCompanionId] = selectedCompanionId
 
         return record
     }
@@ -568,6 +615,10 @@ extension AppSettingsModel: CloudKitRecordConvertible {
             aiAutoTitle: record.bool(for: Constants.iCloud.RecordFields.AppSettings.aiAutoTitle),
             onboardingCompleted: record.bool(for: Constants.iCloud.RecordFields.AppSettings.onboardingCompleted),
             updatedAt: record.date(for: Constants.iCloud.RecordFields.AppSettings.updatedAt) ?? Date(),
+            journalingStyleRaw: record.string(for: Constants.iCloud.RecordFields.AppSettings.journalingStyle) ?? "quick_notes",
+            emotionalExpressionRaw: record.string(for: Constants.iCloud.RecordFields.AppSettings.emotionalExpression) ?? "writing_freely",
+            visualPreferenceRaw: record.string(for: Constants.iCloud.RecordFields.AppSettings.visualPreference) ?? "abstract_dreamy",
+            selectedCompanionId: record.string(for: Constants.iCloud.RecordFields.AppSettings.selectedCompanionId) ?? "realist",
             cloudKitRecordName: record.recordID.recordName,
             lastSyncedAt: Date(),
             needsSync: false

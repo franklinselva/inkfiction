@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftUI
-import Combine
 
 @MainActor
 @Observable
@@ -33,6 +32,9 @@ final class AccountViewModel {
     private var originalEmotionalExpression: EmotionalExpression = .writingFreely
     private var originalVisualPreference: VisualPreference = .abstractDreamy
     private var originalCompanion: AICompanion = .realist
+
+    // Repository
+    private let settingsRepository = SettingsRepository.shared
 
     // MARK: - Computed Properties
 
@@ -75,47 +77,20 @@ final class AccountViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        // Load from UserDefaults (saved onboarding data)
-        if let jsonString = UserDefaults.standard.string(forKey: "onboardingData"),
-           let savedData = SavedOnboardingData.fromJSONString(jsonString) {
+        // Load from SettingsRepository (synced with iCloud)
+        journalingStyle = settingsRepository.journalingStyle
+        originalJournalingStyle = journalingStyle
 
-            // Load companion
-            selectedCompanion = savedData.selectedCompanion
-            originalCompanion = savedData.selectedCompanion
+        emotionalExpression = settingsRepository.emotionalExpression
+        originalEmotionalExpression = emotionalExpression
 
-            // Load preferences from quiz answers
-            for answer in savedData.quizAnswers {
-                switch answer.questionId {
-                case "q1":
-                    if let style = mapToJournalingStyle(answer.answerId) {
-                        journalingStyle = style
-                        originalJournalingStyle = style
-                    }
-                case "q2":
-                    if let expression = mapToEmotionalExpression(answer.answerId) {
-                        emotionalExpression = expression
-                        originalEmotionalExpression = expression
-                    }
-                case "q3":
-                    if let preference = mapToVisualPreference(answer.answerId) {
-                        visualPreference = preference
-                        originalVisualPreference = preference
-                    }
-                default:
-                    break
-                }
-            }
+        visualPreference = settingsRepository.visualPreference
+        originalVisualPreference = visualPreference
 
-            Log.debug("Loaded user preferences from onboarding data", category: .settings)
-        } else {
-            // Load companion ID separately if onboarding data not available
-            if let companionId = UserDefaults.standard.string(forKey: "selectedCompanionId") {
-                selectedCompanion = AICompanion.all.first { $0.id == companionId } ?? .realist
-                originalCompanion = selectedCompanion
-            }
+        selectedCompanion = settingsRepository.selectedCompanion
+        originalCompanion = selectedCompanion
 
-            Log.debug("No onboarding data found, using defaults", category: .settings)
-        }
+        Log.debug("Loaded user preferences from SettingsRepository", category: .settings)
 
         hasChanges = false
     }
@@ -146,8 +121,13 @@ final class AccountViewModel {
         defer { isLoading = false }
 
         do {
-            // Update local storage
-            updateLocalStorage()
+            // Save to SettingsRepository (syncs to iCloud)
+            try await settingsRepository.updateJournalPreferences(
+                journalingStyle: journalingStyle,
+                emotionalExpression: emotionalExpression,
+                visualPreference: visualPreference,
+                companion: selectedCompanion
+            )
 
             // Update original values
             originalJournalingStyle = journalingStyle
@@ -163,7 +143,11 @@ final class AccountViewModel {
                 self.showingSaveSuccess = false
             }
 
-            Log.info("Preferences saved successfully", category: .settings)
+            Log.info("Preferences saved to iCloud successfully", category: .settings)
+        } catch {
+            errorMessage = error.localizedDescription
+            showingError = true
+            Log.error("Failed to save preferences", error: error, category: .settings)
         }
     }
 
@@ -174,55 +158,5 @@ final class AccountViewModel {
                      emotionalExpression != originalEmotionalExpression ||
                      visualPreference != originalVisualPreference ||
                      selectedCompanion.id != originalCompanion.id
-    }
-
-    private func updateLocalStorage() {
-        // Build updated quiz answers
-        let quizAnswers = [
-            QuizAnswer(questionId: "q1", answerId: journalingStyle.rawValue, answerText: journalingStyle.displayName),
-            QuizAnswer(questionId: "q2", answerId: emotionalExpression.rawValue, answerText: emotionalExpression.displayName),
-            QuizAnswer(questionId: "q3", answerId: visualPreference.rawValue, answerText: visualPreference.displayName)
-        ]
-
-        // Load existing data or create new
-        let existingData: SavedOnboardingData?
-        if let jsonString = UserDefaults.standard.string(forKey: "onboardingData") {
-            existingData = SavedOnboardingData.fromJSONString(jsonString)
-        } else {
-            existingData = nil
-        }
-
-        // Create updated data
-        let updatedData = SavedOnboardingData(
-            completedAt: existingData?.completedAt ?? Date(),
-            quizAnswers: quizAnswers,
-            selectedCompanion: selectedCompanion,
-            permissionsGranted: existingData?.permissionsGranted ?? [],
-            wasSkipped: existingData?.wasSkipped ?? false,
-            skippedPermissions: existingData?.skippedPermissions ?? false,
-            timeSpent: existingData?.timeSpent ?? 0,
-            viewedAllCompanions: existingData?.viewedAllCompanions ?? false,
-            changedAnswers: true
-        )
-
-        // Save to UserDefaults
-        if let jsonString = updatedData.toJSONString() {
-            UserDefaults.standard.set(jsonString, forKey: "onboardingData")
-        }
-
-        // Update companion ID separately
-        UserDefaults.standard.set(selectedCompanion.id, forKey: "selectedCompanionId")
-    }
-
-    private func mapToJournalingStyle(_ answerId: String) -> JournalingStyle? {
-        JournalingStyle(rawValue: answerId)
-    }
-
-    private func mapToEmotionalExpression(_ answerId: String) -> EmotionalExpression? {
-        EmotionalExpression(rawValue: answerId)
-    }
-
-    private func mapToVisualPreference(_ answerId: String) -> VisualPreference? {
-        VisualPreference(rawValue: answerId)
     }
 }
