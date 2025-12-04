@@ -13,28 +13,23 @@ struct JournalContextualCollageView: View {
     var preloadedImages: [UUID: UIImage] = [:]
 
     @Environment(\.themeManager) private var themeManager
-    @State private var viewModel: CollageLayoutViewModel?
+    @State private var viewModel: CollageLayoutViewModel
+
+    init(entry: JournalEntry, preloadedImages: [UUID: UIImage] = [:]) {
+        self.entry = entry
+        self.preloadedImages = preloadedImages
+        _viewModel = State(wrappedValue: CollageLayoutViewModel(entry: entry, preloadedImages: preloadedImages))
+    }
 
     var body: some View {
         Group {
-            if let vm = viewModel {
-                layoutView(for: vm)
-            } else {
-                ShimmerView()
-                    .frame(height: CollageDesignTokens.placeholderHeight)
-                    .cornerRadius(CollageDesignTokens.imageCornerRadius)
-            }
-        }
-        .onAppear {
-            if viewModel == nil {
-                viewModel = CollageLayoutViewModel(entry: entry, preloadedImages: preloadedImages)
-            }
+            layoutView(for: viewModel)
         }
         .onChange(of: entry) { _, newEntry in
-            viewModel?.updateEntry(newEntry)
+            viewModel.updateEntry(newEntry)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(viewModel?.accessibilityLabel ?? "Journal images loading")
+        .accessibilityLabel(viewModel.accessibilityLabel)
     }
 
     @ViewBuilder

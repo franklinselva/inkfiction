@@ -14,10 +14,7 @@ struct ReflectMoodDistributionView: View {
     let distribution: [Mood: Int]
     let theme: Theme
 
-    private var sortedMoods: [(mood: Mood, count: Int)] {
-        distribution.map { ($0.key, $0.value) }
-            .sorted { $0.count > $1.count }
-    }
+    @State private var sortedMoods: [(mood: Mood, count: Int)] = []
 
     private var totalCount: Int {
         distribution.values.reduce(0, +)
@@ -34,6 +31,17 @@ struct ReflectMoodDistributionView: View {
                 )
             }
         }
+        .onAppear {
+            updateSortedMoods()
+        }
+        .onChange(of: distribution) { _, _ in
+            updateSortedMoods()
+        }
+    }
+
+    private func updateSortedMoods() {
+        sortedMoods = distribution.map { ($0.key, $0.value) }
+            .sorted { $0.count > $1.count }
     }
 }
 

@@ -19,12 +19,12 @@ struct WelcomeView: View {
     @State private var animateButton = false
     @State private var chevronBounce = false
     @State private var currentSymbolIndex = 0
+    @State private var timer: AnyCancellable?
 
     // MARK: - Constants
 
     private let heroSymbols = ["book.fill", "paintbrush.fill", "sparkles"]
     private let symbolToTextMapping = [0, 1, 2]
-    private let timer = Timer.publish(every: 3, on: .main, in: .common).autoconnect()
 
     private var highlightedTextIndex: Int {
         symbolToTextMapping[currentSymbolIndex]
@@ -99,9 +99,6 @@ struct WelcomeView: View {
                 )
                 .scaleEffect(animateHero ? 1 : 0.9)
                 .opacity(animateHero ? 1 : 0)
-                .onReceive(timer) { _ in
-                    currentSymbolIndex = (currentSymbolIndex + 1) % heroSymbols.count
-                }
 
                 Spacer()
                     .frame(height: 48)
@@ -180,6 +177,18 @@ struct WelcomeView: View {
             withAnimation(.easeOut(duration: 0.6).delay(0.5)) {
                 animateButton = true
             }
+
+            // Start timer
+            timer = Timer.publish(every: 3, on: .main, in: .common)
+                .autoconnect()
+                .sink { _ in
+                    currentSymbolIndex = (currentSymbolIndex + 1) % heroSymbols.count
+                }
+        }
+        .onDisappear {
+            // Cancel timer to prevent memory leak
+            timer?.cancel()
+            timer = nil
         }
     }
 }

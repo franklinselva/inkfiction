@@ -20,11 +20,14 @@ struct TimelineView: View {
     @Namespace private var filterNamespace
     @State private var timelineImages: [UUID: [UUID: UIImage]] = [:]
 
+    // Cached grouped entries to avoid expensive recomputation
+    @State private var groupedEntries: [(date: Date, entries: [JournalEntryModel])] = []
+
     private var filteredEntries: [JournalEntryModel] {
         entries.sorted { $0.createdAt > $1.createdAt }
     }
 
-    private var groupedEntries: [(date: Date, entries: [JournalEntryModel])] {
+    private func computeGroupedEntries() -> [(date: Date, entries: [JournalEntryModel])] {
         let calendar = Calendar.current
 
         switch selectedFilter {
@@ -57,6 +60,10 @@ struct TimelineView: View {
                 (date: $0.key, entries: $0.value.sorted { $0.createdAt > $1.createdAt })
             }
         }
+    }
+
+    private func updateGroupedEntries() {
+        groupedEntries = computeGroupedEntries()
     }
 
     var body: some View {
@@ -124,6 +131,21 @@ struct TimelineView: View {
         .navigationTitle("Timeline")
         .onAppear {
             scrollOffset = 0
+            // Initialize grouped entries on first appearance
+            updateGroupedEntries()
+        }
+        .onChange(of: selectedFilter) { _, _ in
+            // Update grouped entries when filter changes
+            updateGroupedEntries()
+        }
+        .onChange(of: entries.count) { _, _ in
+            // Update grouped entries when entries count changes
+            updateGroupedEntries()
+        }
+        .onDisappear {
+            // Clear image cache to prevent memory leaks
+            timelineImages.removeAll()
+            Log.debug("Cleared timeline images cache", category: .data)
         }
         .task {
             extractTimelineImages()

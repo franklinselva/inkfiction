@@ -226,7 +226,7 @@ final class CloudKitManager {
         recordType: String,
         predicate: NSPredicate = NSPredicate(value: true),
         sortDescriptors: [NSSortDescriptor]? = nil,
-        resultsLimit: Int = CKQueryOperation.maximumResults
+        resultsLimit: Int = 500
     ) async throws -> [CKRecord] {
         guard accountStatus.canSync else {
             throw CloudKitError.notAuthenticated

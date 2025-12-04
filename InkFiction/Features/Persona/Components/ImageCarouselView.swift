@@ -232,8 +232,7 @@ struct GenerationOverlayCompact: View {
     let themeManager: ThemeManager
     @State private var currentStyleIndex = 0
     @State private var currentText = ""
-
-    private let timer = Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
+    @State private var timer: AnyCancellable?
 
     private var stylesToAnimate: [String] {
         selectedStyles.isEmpty
@@ -270,12 +269,21 @@ struct GenerationOverlayCompact: View {
         }
         .onAppear {
             currentText = stylesToAnimate[currentStyleIndex]
+
+            // Start timer
+            timer = Timer.publish(every: 2.0, on: .main, in: .common)
+                .autoconnect()
+                .sink { _ in
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        currentStyleIndex = (currentStyleIndex + 1) % stylesToAnimate.count
+                        currentText = stylesToAnimate[currentStyleIndex]
+                    }
+                }
         }
-        .onReceive(timer) { _ in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                currentStyleIndex = (currentStyleIndex + 1) % stylesToAnimate.count
-                currentText = stylesToAnimate[currentStyleIndex]
-            }
+        .onDisappear {
+            // Cancel timer to prevent memory leak
+            timer?.cancel()
+            timer = nil
         }
     }
 }

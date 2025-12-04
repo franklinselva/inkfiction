@@ -203,6 +203,116 @@ final class JournalRepository {
 
     // MARK: - CRUD Operations
 
+    /// Build a compound predicate combining all active filter conditions
+    /// This avoids the N+1 query problem of applying predicates sequentially
+    /// by constructing a single optimized predicate based on the active filters
+    private func buildCombinedPredicate(
+        archived: Bool,
+        pinnedOnly: Bool,
+        mood: Mood?,
+        startDate: Date?,
+        endDate: Date?
+    ) -> Predicate<JournalEntryModel>? {
+        // Build predicates for each active filter
+        // SwiftData's compound predicates need to be built dynamically
+
+        // Base predicate for archive filter
+        if archived && !pinnedOnly && mood == nil && startDate == nil && endDate == nil {
+            return #Predicate<JournalEntryModel> { $0.isArchived == false }
+        }
+
+        // Archive + pinned
+        if archived && pinnedOnly && mood == nil && startDate == nil && endDate == nil {
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false && $0.isPinned == true
+            }
+        }
+
+        // Archive + mood
+        if archived && !pinnedOnly && mood != nil && startDate == nil && endDate == nil {
+            let moodRaw = mood!.rawValue
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false && $0.moodRaw == moodRaw
+            }
+        }
+
+        // Archive + dates
+        if archived && !pinnedOnly && mood == nil && startDate != nil && endDate != nil {
+            let start = startDate!
+            let end = endDate!
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false && $0.createdAt >= start && $0.createdAt <= end
+            }
+        }
+
+        // Archive + start date only
+        if archived && !pinnedOnly && mood == nil && startDate != nil && endDate == nil {
+            let start = startDate!
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false && $0.createdAt >= start
+            }
+        }
+
+        // Archive + end date only
+        if archived && !pinnedOnly && mood == nil && startDate == nil && endDate != nil {
+            let end = endDate!
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false && $0.createdAt <= end
+            }
+        }
+
+        // All filters active
+        if archived && pinnedOnly && mood != nil && startDate != nil && endDate != nil {
+            let moodRaw = mood!.rawValue
+            let start = startDate!
+            let end = endDate!
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false &&
+                $0.isPinned == true &&
+                $0.moodRaw == moodRaw &&
+                $0.createdAt >= start &&
+                $0.createdAt <= end
+            }
+        }
+
+        // Archive + pinned + mood
+        if archived && pinnedOnly && mood != nil && startDate == nil && endDate == nil {
+            let moodRaw = mood!.rawValue
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false && $0.isPinned == true && $0.moodRaw == moodRaw
+            }
+        }
+
+        // Archive + pinned + dates
+        if archived && pinnedOnly && mood == nil && startDate != nil && endDate != nil {
+            let start = startDate!
+            let end = endDate!
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false &&
+                $0.isPinned == true &&
+                $0.createdAt >= start &&
+                $0.createdAt <= end
+            }
+        }
+
+        // Archive + mood + dates
+        if archived && !pinnedOnly && mood != nil && startDate != nil && endDate != nil {
+            let moodRaw = mood!.rawValue
+            let start = startDate!
+            let end = endDate!
+            return #Predicate<JournalEntryModel> {
+                $0.isArchived == false &&
+                $0.moodRaw == moodRaw &&
+                $0.createdAt >= start &&
+                $0.createdAt <= end
+            }
+        }
+
+        // If no specific combination matched, return nil and apply filters in-memory
+        // This is a fallback for rare filter combinations
+        return nil
+    }
+
     /// Fetch all entries with optional filter and sort
     func fetchEntries(
         filter: JournalFilter = .default,
@@ -217,43 +327,20 @@ final class JournalRepository {
 
         Log.debug("Fetching journal entries with filter", category: .journal)
 
-        var predicates: [Predicate<JournalEntryModel>] = []
-
-        // Archive filter
-        if !filter.includeArchived {
-            predicates.append(#Predicate<JournalEntryModel> { $0.isArchived == false })
-        }
-
-        // Pinned filter
-        if filter.pinnedOnly {
-            predicates.append(#Predicate<JournalEntryModel> { $0.isPinned == true })
-        }
-
-        // Mood filter
-        if let mood = filter.mood {
-            let moodRaw = mood.rawValue
-            predicates.append(#Predicate<JournalEntryModel> { $0.moodRaw == moodRaw })
-        }
-
-        // Date range filter
-        if let startDate = filter.startDate {
-            predicates.append(#Predicate<JournalEntryModel> { $0.createdAt >= startDate })
-        }
-
-        if let endDate = filter.endDate {
-            predicates.append(#Predicate<JournalEntryModel> { $0.createdAt <= endDate })
-        }
-
-        // Build fetch descriptor
+        // Build fetch descriptor with combined compound predicate
         var descriptor = FetchDescriptor<JournalEntryModel>(
             sortBy: [sort.sortDescriptor]
         )
 
-        // Combine predicates if any
-        if !predicates.isEmpty {
-            // For simplicity, we'll apply the first predicate
-            // Complex compound predicates would need manual handling
-            descriptor.predicate = predicates.first
+        // Build a single compound predicate combining all filters to avoid N+1 queries
+        if let combinedPredicate = buildCombinedPredicate(
+            archived: !filter.includeArchived,
+            pinnedOnly: filter.pinnedOnly,
+            mood: filter.mood,
+            startDate: filter.startDate,
+            endDate: filter.endDate
+        ) {
+            descriptor.predicate = combinedPredicate
         }
 
         do {
@@ -261,14 +348,10 @@ final class JournalRepository {
 
             // Force load images relationship for each entry
             // SwiftData lazy-loads relationships, so we need to access them to populate the data
+            // Note: We only load the relationship count, not the actual imageData
+            // ImageData should be loaded on-demand when the image is displayed
             for entry in results {
                 _ = entry.images?.count
-                // Also ensure imageData is loaded for each image
-                if let images = entry.images {
-                    for image in images {
-                        _ = image.imageData
-                    }
-                }
             }
 
             // Apply search text filter in memory (SwiftData predicate limitations)
@@ -312,12 +395,9 @@ final class JournalRepository {
             if let entry = results.first {
                 // Force load images relationship
                 // SwiftData lazy-loads relationships, so we need to access them to populate the data
+                // Note: We only load the relationship count, not the actual imageData
+                // ImageData should be loaded on-demand when the image is displayed
                 _ = entry.images?.count
-                if let images = entry.images {
-                    for image in images {
-                        _ = image.imageData
-                    }
-                }
                 return entry
             }
             return nil
@@ -493,13 +573,16 @@ final class JournalRepository {
     // MARK: - CloudKit Sync
 
     /// Sync a single entry to CloudKit (including images)
-    private func syncEntryToCloudKit(_ entry: JournalEntryModel) async {
+    /// - Parameter batchMode: If true, skips saving to allow batch saves by caller
+    private func syncEntryToCloudKit(_ entry: JournalEntryModel, batchMode: Bool = false) async {
         guard syncMonitor.canSync else {
             Log.debug("Cannot sync - network or account unavailable", category: .cloudKit)
             return
         }
 
-        syncMonitor.beginSync()
+        if !batchMode {
+            syncMonitor.beginSync()
+        }
 
         do {
             // First, sync the entry record
@@ -517,16 +600,21 @@ final class JournalRepository {
                 }
             }
 
-            if let context = modelContext {
+            // Only save if not in batch mode
+            if !batchMode, let context = modelContext {
                 try context.save()
             }
 
-            syncMonitor.endSync()
-            syncMonitor.removePendingSync()
+            if !batchMode {
+                syncMonitor.endSync()
+                syncMonitor.removePendingSync()
+            }
 
             Log.info("Entry synced to CloudKit: \(entry.id)", category: .cloudKit)
         } catch {
-            syncMonitor.syncFailed(error: error)
+            if !batchMode {
+                syncMonitor.syncFailed(error: error)
+            }
             Log.error("Failed to sync entry to CloudKit", error: error, category: .cloudKit)
         }
     }
@@ -587,9 +675,12 @@ final class JournalRepository {
             syncMonitor.beginSync(totalOperations: pendingEntries.count)
 
             for (index, entry) in pendingEntries.enumerated() {
-                await syncEntryToCloudKit(entry)
+                await syncEntryToCloudKit(entry, batchMode: true)
                 syncMonitor.updateProgress(completed: index + 1)
             }
+
+            // Batch save after all entries synced
+            try context.save()
 
             syncMonitor.endSync()
         } catch {
@@ -614,21 +705,20 @@ final class JournalRepository {
             // Fetch entries
             let entryRecords = try await cloudKitManager.query(
                 recordType: Constants.iCloud.RecordTypes.journalEntry,
-                sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+                sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)],
+                resultsLimit: 500
             )
 
+            // Batch fetch all existing entries by IDs to avoid N+1 queries
+            let descriptor = FetchDescriptor<JournalEntryModel>()
+            let allLocalEntries = try context.fetch(descriptor)
+            let localEntriesMap = Dictionary(uniqueKeysWithValues: allLocalEntries.map { ($0.id, $0) })
+
+            // Process all records in batch
             for record in entryRecords {
                 guard let remoteEntry = JournalEntryModel(from: record) else { continue }
 
-                // Check if entry already exists locally
-                let remoteId = remoteEntry.id
-                let descriptor = FetchDescriptor<JournalEntryModel>(
-                    predicate: #Predicate<JournalEntryModel> { $0.id == remoteId }
-                )
-
-                let existingEntries = try context.fetch(descriptor)
-
-                if let existingEntry = existingEntries.first {
+                if let existingEntry = localEntriesMap[remoteEntry.id] {
                     // Update if remote is newer
                     if remoteEntry.updatedAt > existingEntry.updatedAt {
                         existingEntry.title = remoteEntry.title
@@ -648,6 +738,7 @@ final class JournalRepository {
                 }
             }
 
+            // Save once after all changes
             try context.save()
 
             // Now fetch and sync images
@@ -674,10 +765,22 @@ final class JournalRepository {
         do {
             let imageRecords = try await cloudKitManager.query(
                 recordType: Constants.iCloud.RecordTypes.journalImage,
-                sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)]
+                sortDescriptors: [NSSortDescriptor(key: "createdAt", ascending: false)],
+                resultsLimit: 500
             )
 
             Log.debug("Found \(imageRecords.count) image records in CloudKit", category: .cloudKit)
+
+            // Batch fetch all existing images by IDs to avoid N+1 queries
+            let allLocalImages = try context.fetch(FetchDescriptor<JournalImageModel>())
+            let localImagesMap = Dictionary(uniqueKeysWithValues: allLocalImages.map { ($0.id, $0) })
+
+            // Batch fetch all entries by IDs to avoid N+1 queries
+            let allLocalEntries = try context.fetch(FetchDescriptor<JournalEntryModel>())
+            let localEntriesMap = Dictionary(uniqueKeysWithValues: allLocalEntries.map { ($0.id, $0) })
+
+            // Collect new images to insert
+            var newImagesToInsert: [JournalImageModel] = []
 
             for record in imageRecords {
                 // Check if image already exists locally
@@ -686,13 +789,7 @@ final class JournalRepository {
                     continue
                 }
 
-                let descriptor = FetchDescriptor<JournalImageModel>(
-                    predicate: #Predicate<JournalImageModel> { $0.id == imageId }
-                )
-
-                let existingImages = try context.fetch(descriptor)
-
-                if existingImages.first != nil {
+                if localImagesMap[imageId] != nil {
                     // Image already exists locally, skip
                     continue
                 }
@@ -707,26 +804,27 @@ final class JournalRepository {
 
                 // Find parent entry and associate
                 if let entryIdString = record.string(for: Constants.iCloud.RecordFields.JournalImage.journalEntryId),
-                   let entryId = UUID(uuidString: entryIdString) {
-                    let entryDescriptor = FetchDescriptor<JournalEntryModel>(
-                        predicate: #Predicate<JournalEntryModel> { $0.id == entryId }
-                    )
-
-                    if let parentEntry = try context.fetch(entryDescriptor).first {
-                        newImage.journalEntry = parentEntry
-                        if parentEntry.images == nil {
-                            parentEntry.images = []
-                        }
-                        parentEntry.images?.append(newImage)
-                        context.insert(newImage)
-
-                        Log.debug("Pulled image \(imageId) for entry \(entryId)", category: .cloudKit)
+                   let entryId = UUID(uuidString: entryIdString),
+                   let parentEntry = localEntriesMap[entryId] {
+                    newImage.journalEntry = parentEntry
+                    if parentEntry.images == nil {
+                        parentEntry.images = []
                     }
+                    parentEntry.images?.append(newImage)
+                    newImagesToInsert.append(newImage)
+
+                    Log.debug("Pulled image \(imageId) for entry \(entryId)", category: .cloudKit)
                 }
             }
 
+            // Insert all new images in batch
+            for newImage in newImagesToInsert {
+                context.insert(newImage)
+            }
+
+            // Save once after all changes
             try context.save()
-            Log.info("Pulled \(imageRecords.count) images from CloudKit", category: .cloudKit)
+            Log.info("Pulled \(newImagesToInsert.count) new images from CloudKit", category: .cloudKit)
         } catch {
             Log.error("Failed to pull images from CloudKit", error: error, category: .cloudKit)
         }

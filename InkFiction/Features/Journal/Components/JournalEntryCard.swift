@@ -7,12 +7,20 @@
 
 import SwiftUI
 
-struct JournalEntryCard: View {
+struct JournalEntryCard: View, Equatable {
     let entry: JournalEntry
     var isSelectionMode: Bool = false
     var isSelected: Bool = false
 
     @Environment(\.themeManager) private var themeManager
+
+    // Equatable conformance for diffing optimization
+    static func == (lhs: JournalEntryCard, rhs: JournalEntryCard) -> Bool {
+        lhs.entry.id == rhs.entry.id &&
+        lhs.entry.updatedAt == rhs.entry.updatedAt &&
+        lhs.isSelectionMode == rhs.isSelectionMode &&
+        lhs.isSelected == rhs.isSelected
+    }
 
     var body: some View {
         HStack(spacing: 12) {

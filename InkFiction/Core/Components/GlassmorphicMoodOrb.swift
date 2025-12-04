@@ -21,6 +21,10 @@ struct GlassmorphicMoodOrb: View {
     @State private var rotationAngle = 0.0
     @State private var isTapped = false
 
+    // Cached color values to avoid expensive recomputation
+    @State private var cachedBlendedMoodColor: Color = .clear
+    @State private var cachedRimGradientColors: [Color] = []
+
     // MARK: - Mood Type
 
     enum MoodType: Equatable {
@@ -118,11 +122,18 @@ struct GlassmorphicMoodOrb: View {
         }
     }
 
+    // MARK: - Color Update
+
+    private func updateCachedColors() {
+        cachedBlendedMoodColor = blendedMoodColor()
+        cachedRimGradientColors = rimGradientColors()
+    }
+
     // MARK: - Body
 
     var body: some View {
         let theme = themeManager.currentTheme
-        let moodColor = blendedMoodColor()
+        let moodColor = cachedBlendedMoodColor
 
         ZStack {
             // Shadow layer for 3D elevation effect
@@ -193,7 +204,7 @@ struct GlassmorphicMoodOrb: View {
                 Circle()
                     .stroke(
                         AngularGradient(
-                            colors: rimGradientColors(),
+                            colors: cachedRimGradientColors,
                             center: .center,
                             startAngle: .degrees(rotationAngle),
                             endAngle: .degrees(rotationAngle + 360)
@@ -253,6 +264,9 @@ struct GlassmorphicMoodOrb: View {
             .scaleEffect(isTapped ? 1.05 : 1.0)
         }
         .onAppear {
+            // Update cached colors on initial appearance
+            updateCachedColors()
+
             let theme = themeManager.currentTheme
             glowIntensity = theme.orbGlowIntensity * 0.7
 
@@ -267,6 +281,14 @@ struct GlassmorphicMoodOrb: View {
             withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
                 rotationAngle = 360
             }
+        }
+        .onChange(of: mood) { _, _ in
+            // Update cached colors when mood changes
+            updateCachedColors()
+        }
+        .onChange(of: themeManager.currentTheme.type) { _, _ in
+            // Update cached colors when theme changes
+            updateCachedColors()
         }
         .onTapGesture {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {

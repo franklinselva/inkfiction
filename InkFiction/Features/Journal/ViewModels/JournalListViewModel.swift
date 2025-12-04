@@ -363,10 +363,13 @@ final class JournalListViewModel {
         Task {
             Log.info("Bulk archiving \(selectedEntries.count) entries", category: .journal)
 
-            for id in selectedEntries {
-                if let entry = entries.first(where: { $0.id == id }),
-                   let model = try? await repository.getEntry(by: id) {
-                    try? await repository.archiveEntry(model)
+            await withTaskGroup(of: Void.self) { group in
+                for id in selectedEntries {
+                    group.addTask {
+                        if let model = try? await self.repository.getEntry(by: id) {
+                            try? await self.repository.archiveEntry(model)
+                        }
+                    }
                 }
             }
 
@@ -380,9 +383,13 @@ final class JournalListViewModel {
         Task {
             Log.info("Bulk deleting \(selectedEntries.count) entries", category: .journal)
 
-            for id in selectedEntries {
-                if let model = try? await repository.getEntry(by: id) {
-                    try? await repository.deleteEntry(model)
+            await withTaskGroup(of: Void.self) { group in
+                for id in selectedEntries {
+                    group.addTask {
+                        if let model = try? await self.repository.getEntry(by: id) {
+                            try? await self.repository.deleteEntry(model)
+                        }
+                    }
                 }
             }
 

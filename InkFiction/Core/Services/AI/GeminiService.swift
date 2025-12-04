@@ -135,6 +135,10 @@ final class GeminiService {
     private(set) var isProcessing = false
     private(set) var lastError: AIError?
 
+    // PERF-N005: Track ongoing tasks for cancellation support
+    private var activeTasks: [UUID: Task<Void, Never>] = [:]
+    private let tasksLock = NSLock()
+
     /// Base URL for text generation API
     var textBaseURL: String {
         get { UserDefaults.standard.string(forKey: "ai_text_base_url") ?? Constants.AI.textBaseURL }
@@ -169,6 +173,42 @@ final class GeminiService {
         case post = "POST"
         case put = "PUT"
         case delete = "DELETE"
+    }
+
+    // MARK: - Task Management
+
+    /// Cancel all active requests
+    func cancelAllRequests() {
+        tasksLock.lock()
+        defer { tasksLock.unlock() }
+
+        activeTasks.values.forEach { $0.cancel() }
+        activeTasks.removeAll()
+        Log.debug("Cancelled all active AI requests", category: .ai)
+    }
+
+    /// Cancel a specific request by ID
+    func cancelRequest(_ requestId: UUID) {
+        tasksLock.lock()
+        defer { tasksLock.unlock() }
+
+        if let task = activeTasks[requestId] {
+            task.cancel()
+            activeTasks.removeValue(forKey: requestId)
+            Log.debug("Cancelled AI request: \(requestId)", category: .ai)
+        }
+    }
+
+    private func registerTask(_ taskId: UUID, _ task: Task<Void, Never>) {
+        tasksLock.lock()
+        defer { tasksLock.unlock() }
+        activeTasks[taskId] = task
+    }
+
+    private func unregisterTask(_ taskId: UUID) {
+        tasksLock.lock()
+        defer { tasksLock.unlock() }
+        activeTasks.removeValue(forKey: taskId)
     }
 
     // MARK: - Core Text Generation
@@ -363,6 +403,9 @@ final class GeminiService {
         body: T,
         timeout: TimeInterval
     ) async throws -> R {
+        // PERF-N005: Check if task is cancelled before starting request
+        try Task.checkCancellation()
+
         let url = URL(string: baseURL)!
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.post.rawValue
@@ -377,7 +420,13 @@ final class GeminiService {
             isProcessing = true
             defer { isProcessing = false }
 
+            // PERF-N005: Check cancellation before network call
+            try Task.checkCancellation()
+
             let (data, response) = try await session.data(for: request)
+
+            // PERF-N005: Check cancellation after network call
+            try Task.checkCancellation()
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw AIError.invalidResponse
@@ -405,6 +454,10 @@ final class GeminiService {
             let result = try decoder.decode(R.self, from: data)
             lastError = nil
             return result
+
+        } catch is CancellationError {
+            Log.debug("AI request cancelled", category: .ai)
+            throw AIError.networkError(underlying: CancellationError())
 
         } catch let error as AIError {
             lastError = error

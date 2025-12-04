@@ -14,13 +14,15 @@ struct ReflectView: View {
     @Environment(\.themeManager) private var themeManager
     @Query(
         filter: #Predicate<JournalEntryModel> { !$0.isArchived },
-        sort: \JournalEntryModel.createdAt, order: .reverse
+        sort: \JournalEntryModel.createdAt, order: .reverse,
+        animation: .default
     )
     private var entries: [JournalEntryModel]
 
     @State private var viewModel = ReflectViewModel()
     @State private var moodOrbData: [OrganicMoodOrbCluster.MoodOrbData] = []
     @State private var isViewActive = false
+    @State private var loadTask: Task<Void, Never>?
 
     @Binding var scrollOffset: CGFloat
 
@@ -74,18 +76,16 @@ struct ReflectView: View {
         }
         .onDisappear {
             isViewActive = false
+            loadTask?.cancel()
+            loadTask = nil
         }
         .onChange(of: entries) { _, newEntries in
             viewModel.updateWithEntries(newEntries)
-            if isViewActive {
-                loadMoodOrbData()
-            }
+            scheduleMoodOrbDataLoad()
         }
         .onChange(of: viewModel.timeframe) { _, _ in
             viewModel.updateWithEntries(entries)
-            if isViewActive {
-                loadMoodOrbData()
-            }
+            scheduleMoodOrbDataLoad()
         }
     }
 
@@ -93,7 +93,8 @@ struct ReflectView: View {
 
     private var filteredEntries: [JournalEntryModel] {
         let dateRange = viewModel.timeframe.dateRange()
-        return entries.filter { entry in
+        // Apply limit to prevent processing too many entries
+        return entries.prefix(500).filter { entry in
             !entry.isArchived && dateRange.contains(entry.createdAt)
         }
     }
@@ -127,6 +128,25 @@ struct ReflectView: View {
     }
 
     // MARK: - Load Mood Orb Data
+
+    /// Schedules mood orb data loading with debouncing to prevent redundant calls
+    private func scheduleMoodOrbDataLoad() {
+        guard isViewActive else { return }
+
+        // Cancel any pending load task
+        loadTask?.cancel()
+
+        // Schedule new load with 150ms debounce
+        loadTask = Task {
+            try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
+
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                loadMoodOrbData()
+            }
+        }
+    }
 
     private func loadMoodOrbData() {
         Log.debug("Loading mood data for ReflectView", category: .moodAnalysis)

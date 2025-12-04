@@ -22,6 +22,7 @@ struct OrganicMoodOrbCluster: View {
     @State private var orbScales: [UUID: CGFloat] = [:]
     @State private var isAnimating = false
     @State private var shouldCancelAnimations = false
+    @State private var reinitTask: Task<Void, Never>?
 
     // MARK: - Data Structures
 
@@ -87,14 +88,16 @@ struct OrganicMoodOrbCluster: View {
             }
             .onDisappear {
                 cleanupAnimationState()
+                reinitTask?.cancel()
+                reinitTask = nil
             }
             .onChange(of: moodData) { _, newData in
                 if !newData.isEmpty {
-                    reinitializeLayout(in: geometry.size)
+                    scheduleReinitializeLayout(in: geometry.size)
                 }
             }
             .onChange(of: geometry.size) { _, newSize in
-                reinitializeLayout(in: newSize)
+                scheduleReinitializeLayout(in: newSize)
             }
         }
         .sheet(item: $selectedMoodData) { moodData in
@@ -166,6 +169,23 @@ struct OrganicMoodOrbCluster: View {
         }
 
         hasInitialized = true
+    }
+
+    /// Schedules layout reinitialization with debouncing to prevent simultaneous physics simulations
+    private func scheduleReinitializeLayout(in size: CGSize) {
+        // Cancel any pending reinit task
+        reinitTask?.cancel()
+
+        // Schedule new reinit with 200ms debounce
+        reinitTask = Task {
+            try? await Task.sleep(nanoseconds: 200_000_000) // 200ms
+
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                reinitializeLayout(in: size)
+            }
+        }
     }
 
     private func reinitializeLayout(in size: CGSize) {

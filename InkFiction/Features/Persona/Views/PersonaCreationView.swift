@@ -14,12 +14,12 @@ struct PersonaCreationView: View {
     @Environment(Router.self) private var router
     @State private var viewModel = PersonaCreationViewModel()
 
-    @State private var selectedImage: UIImage?
+    @State private var selectedImageData: Data?
     @State private var showImagePicker = false
     @State private var selectedStyles: Set<AvatarStyle> = []
     @State private var personaName = ""
     @State private var isGenerating = false
-    @State private var generatedAvatars: [AvatarStyle: UIImage] = [:]
+    @State private var generatedAvatars: [AvatarStyle: Data] = [:]
     @State private var failedStyles: Set<AvatarStyle> = []
     @State private var generationProgress: Double = 0
     @State private var showErrorAlert = false
@@ -29,6 +29,8 @@ struct PersonaCreationView: View {
     @State private var showDeleteConfirmation = false
     @State private var containerToDelete: ImageContainer?
     @State private var scrollOffset: CGFloat = 0
+    @State private var generationTask: Task<Void, Never>?
+    @State private var saveTask: Task<Void, Never>?
 
     // Computed property to check if we have successfully generated content
     private var hasGeneratedContent: Bool {
@@ -38,7 +40,8 @@ struct PersonaCreationView: View {
     // Convert generated avatars to ImageContainers for PolaroidCarousel
     private var generatedImageContainers: [ImageContainer] {
         generatedAvatars.keys.sorted(by: { $0.rawValue < $1.rawValue }).compactMap { style in
-            guard let image = generatedAvatars[style] else { return nil }
+            guard let imageData = generatedAvatars[style],
+                  let image = UIImage(data: imageData) else { return nil }
             return ImageContainer(
                 id: UUID(),
                 uiImage: image,
@@ -79,7 +82,25 @@ struct PersonaCreationView: View {
             }
         }
         .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage)
+            ImagePicker(image: Binding(
+                get: {
+                    guard let data = selectedImageData else { return nil }
+                    return UIImage(data: data)
+                },
+                set: { newImage in
+                    // PERF-M006: Downsample immediately when user picks photo
+                    if let image = newImage {
+                        selectedImageData = ImageCompressionUtility.compress(
+                            image: image,
+                            quality: .high,
+                            targetSize: .large
+                        )
+                        Log.debug("Downsampled selected photo to \(ImageCompressionUtility.formatBytes(selectedImageData?.count ?? 0))", category: .persona)
+                    } else {
+                        selectedImageData = nil
+                    }
+                }
+            ))
         }
         .alert("Generation Failed", isPresented: $showErrorAlert) {
             Button("Retry") {
@@ -107,6 +128,11 @@ struct PersonaCreationView: View {
         .onAppear {
             resetState()
         }
+        .onDisappear {
+            // PERF-M011: Cancel ongoing tasks when view disappears
+            generationTask?.cancel()
+            saveTask?.cancel()
+        }
     }
 
     // MARK: - Input View (Name, Photo, Styles)
@@ -123,7 +149,7 @@ struct PersonaCreationView: View {
                 photoSection
 
                 // Style selection (show when photo selected, hide during generation)
-                if selectedImage != nil && !isGenerating {
+                if selectedImageData != nil && !isGenerating {
                     styleSelectionSection
                 }
 
@@ -194,7 +220,7 @@ struct PersonaCreationView: View {
 
     private var photoSection: some View {
         VStack(spacing: 16) {
-            if let image = selectedImage {
+            if let imageData = selectedImageData, let image = UIImage(data: imageData) {
                 // Selected image display with generation overlay
                 ZStack {
                     Image(uiImage: image)
@@ -229,7 +255,7 @@ struct PersonaCreationView: View {
                 // Change photo button (hide during generation)
                 if !isGenerating {
                     Button(action: {
-                        selectedImage = nil
+                        selectedImageData = nil
                         generatedAvatars = [:]
                         failedStyles = []
                     }) {
@@ -419,7 +445,7 @@ struct PersonaCreationView: View {
                     .font(.headline)
             }
             .foregroundColor(.white)
-        } else if selectedImage != nil && !selectedStyles.isEmpty {
+        } else if selectedImageData != nil && !selectedStyles.isEmpty {
             // Ready to generate
             HStack(spacing: 8) {
                 Image(systemName: "wand.and.stars")
@@ -443,7 +469,7 @@ struct PersonaCreationView: View {
         if !generatedAvatars.isEmpty {
             return hasValidName
         } else {
-            return selectedImage != nil && !selectedStyles.isEmpty && hasValidName
+            return selectedImageData != nil && !selectedStyles.isEmpty && hasValidName
         }
     }
 
@@ -512,7 +538,9 @@ struct PersonaCreationView: View {
     }
 
     private func startGeneration() {
-        guard let image = selectedImage, !selectedStyles.isEmpty else { return }
+        guard let imageData = selectedImageData,
+              let image = UIImage(data: imageData),
+              !selectedStyles.isEmpty else { return }
 
         isGenerating = true
         generationProgress = 0
@@ -520,7 +548,8 @@ struct PersonaCreationView: View {
         generatedAvatars = [:]
         lastGenerationError = nil
 
-        Task {
+        // PERF-M011: Store task reference for cancellation
+        generationTask = Task {
             await generateAvatars(image: image, styles: Array(selectedStyles))
 
             await MainActor.run {
@@ -547,7 +576,9 @@ struct PersonaCreationView: View {
     }
 
     private func retryFailedStyles() {
-        guard let image = selectedImage, !failedStyles.isEmpty else { return }
+        guard let imageData = selectedImageData,
+              let image = UIImage(data: imageData),
+              !failedStyles.isEmpty else { return }
 
         let stylesToRetry = Array(failedStyles)
         failedStyles = []
@@ -556,7 +587,8 @@ struct PersonaCreationView: View {
         isGenerating = true
         generationProgress = 0
 
-        Task {
+        // PERF-M011: Store task reference for cancellation
+        generationTask = Task {
             await generateAvatars(image: image, styles: stylesToRetry)
 
             await MainActor.run {
@@ -601,16 +633,9 @@ struct PersonaCreationView: View {
                     }
                 }
 
-                guard let generatedImage = UIImage(data: generatedImageData) else {
-                    Log.warning("Failed to convert generated image data for style: \(style.rawValue)", category: .persona)
-                    _ = await MainActor.run { [style] in
-                        self.failedStyles.insert(style)
-                    }
-                    continue
-                }
-
-                _ = await MainActor.run { [style, generatedImage, index, styles] in
-                    self.generatedAvatars[style] = generatedImage
+                // PERF-M005: Store as Data instead of UIImage to reduce memory pressure
+                _ = await MainActor.run { [style, generatedImageData, index, styles] in
+                    self.generatedAvatars[style] = generatedImageData
                     self.generationProgress = Double(index + 1) / Double(styles.count)
                 }
 
@@ -625,9 +650,12 @@ struct PersonaCreationView: View {
     }
 
     private func savePersona() {
-        guard let image = selectedImage, !generatedAvatars.isEmpty else { return }
+        guard let imageData = selectedImageData,
+              let image = UIImage(data: imageData),
+              !generatedAvatars.isEmpty else { return }
 
-        Task {
+        // PERF-M011: Store task reference for cancellation
+        saveTask = Task {
             await viewModel.savePersona(
                 name: personaName.trimmingCharacters(in: .whitespacesAndNewlines),
                 photo: image,
@@ -798,7 +826,7 @@ struct GenerationProgressOverlay: View {
     let themeManager: ThemeManager
 
     @State private var currentStyleIndex = 0
-    private let timer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
+    @State private var timer: AnyCancellable?
 
     private var stylesToAnimate: [AvatarStyle] {
         selectedStyles.isEmpty
@@ -874,10 +902,20 @@ struct GenerationProgressOverlay: View {
             }
             .padding(32)
         }
-        .onReceive(timer) { _ in
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                currentStyleIndex = (currentStyleIndex + 1) % stylesToAnimate.count
-            }
+        .onAppear {
+            // Start timer
+            timer = Timer.publish(every: 1.5, on: .main, in: .common)
+                .autoconnect()
+                .sink { _ in
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        currentStyleIndex = (currentStyleIndex + 1) % stylesToAnimate.count
+                    }
+                }
+        }
+        .onDisappear {
+            // Cancel timer to prevent memory leak
+            timer?.cancel()
+            timer = nil
         }
     }
 }

@@ -541,18 +541,35 @@ extension JournalEditorViewModel {
 
     /// Generate an AI image for the journal entry
     func generateAIImage(prompt: String? = nil) async {
-        let imagePrompt = prompt ?? generatedImagePrompt
+        var imagePrompt = prompt ?? generatedImagePrompt
+        var retryCount = 0
+        let maxRetries = 3
+
+        // If no prompt, generate one first
+        while imagePrompt.isEmpty && retryCount < maxRetries {
+            await processJournalEntry()
+
+            guard !generatedImagePrompt.isEmpty else {
+                retryCount += 1
+                if retryCount >= maxRetries {
+                    errorMessage = "Could not generate an image prompt after \(maxRetries) attempts."
+                    showError = true
+                    return
+                }
+
+                // Exponential backoff: 100ms, 200ms, 400ms
+                let backoffMs = UInt64(100_000_000 * (1 << retryCount)) // nanoseconds
+                try? await Task.sleep(nanoseconds: backoffMs)
+                continue
+            }
+
+            imagePrompt = generatedImagePrompt
+            break
+        }
 
         guard !imagePrompt.isEmpty else {
-            // Generate prompt first
-            await processJournalEntry()
-            guard !generatedImagePrompt.isEmpty else {
-                errorMessage = "Could not generate an image prompt."
-                showError = true
-                return
-            }
-            // Retry with generated prompt
-            await generateAIImage(prompt: generatedImagePrompt)
+            errorMessage = "Could not generate an image prompt."
+            showError = true
             return
         }
 

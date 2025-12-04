@@ -20,6 +20,8 @@ struct PersonaManagementView: View {
     @State private var showCannotDeleteLastStyleAlert = false
     @State private var selectedAvatarIndex = 0
     @State private var scrollOffset: CGFloat = 0
+    @State private var deleteTask: Task<Void, Never>?
+    @State private var selectTask: Task<Void, Never>?
 
     private var navigationTitle: String {
         subscriptionService.currentTier == .free ? "Personas" : "Your Persona"
@@ -91,6 +93,11 @@ struct PersonaManagementView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("You must keep at least one avatar style.")
+        }
+        .onDisappear {
+            // PERF-M012: Cancel ongoing tasks when view disappears
+            deleteTask?.cancel()
+            selectTask?.cancel()
         }
     }
 
@@ -716,7 +723,8 @@ struct PersonaManagementView: View {
         guard let persona = personaRepository.currentPersona,
               let avatar = persona.avatar(for: style) else { return }
 
-        Task {
+        // PERF-M012: Store task reference for cancellation
+        deleteTask = Task {
             do {
                 try await personaRepository.removeAvatar(avatar)
                 loadPersonaImages()
@@ -730,7 +738,8 @@ struct PersonaManagementView: View {
         guard let persona = personaRepository.currentPersona,
               let avatar = persona.avatars?.first(where: { $0.id == container.id }) else { return }
 
-        Task {
+        // PERF-M012: Store task reference for cancellation
+        selectTask = Task {
             try? await personaRepository.setActiveAvatar(avatar)
         }
     }

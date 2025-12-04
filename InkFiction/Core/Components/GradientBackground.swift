@@ -36,6 +36,9 @@ struct AnimatedGradientBackground: View {
     @State private var gradientRotation: Double = 0
     @State private var pulseOpacity: Double = 0.3
 
+    // Track if view is visible to control animations
+    @State private var isViewVisible: Bool = false
+
     var body: some View {
         let theme = themeManager.currentTheme
 
@@ -57,7 +60,12 @@ struct AnimatedGradientBackground: View {
                 .ignoresSafeArea()
         }
         .onAppear {
+            isViewVisible = true
             startAnimations(theme: theme)
+        }
+        .onDisappear {
+            isViewVisible = false
+            stopAnimations()
         }
     }
 
@@ -110,6 +118,9 @@ struct AnimatedGradientBackground: View {
     // MARK: - Animation Control
 
     private func startAnimations(theme: Theme) {
+        // Only start animations if view is visible
+        guard isViewVisible else { return }
+
         // Main gradient movement animation (25 seconds cycle)
         withAnimation(.easeInOut(duration: 25).repeatForever(autoreverses: true)) {
             gradientOffset = 50
@@ -126,6 +137,17 @@ struct AnimatedGradientBackground: View {
         }
 
         Log.debug("Gradient animations started for theme: \(theme.type.rawValue)", category: .ui)
+    }
+
+    private func stopAnimations() {
+        // Remove animations by resetting to initial state without animation
+        withAnimation(.linear(duration: 0)) {
+            gradientOffset = 0
+            gradientRotation = 0
+            pulseOpacity = 0.3
+        }
+
+        Log.debug("Gradient animations stopped", category: .ui)
     }
 }
 

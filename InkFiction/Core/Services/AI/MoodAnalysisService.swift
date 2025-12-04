@@ -103,11 +103,38 @@ final class MoodAnalysisService {
     func analyzeMoods(entries: [JournalEntryModel]) async -> [UUID: MoodAnalysisResult] {
         var results: [UUID: MoodAnalysisResult] = [:]
 
-        for entry in entries {
-            guard !entry.content.isEmpty else { continue }
+        // Use TaskGroup with concurrency limit to avoid overwhelming API
+        await withTaskGroup(of: (UUID, MoodAnalysisResult)?.self) { group in
+            var activeTaskCount = 0
+            let maxConcurrentTasks = 3
 
-            let result = await analyzeMoodWithFallback(content: entry.content)
-            results[entry.id] = result
+            for entry in entries {
+                guard !entry.content.isEmpty else { continue }
+
+                // Wait if we've reached the concurrency limit
+                if activeTaskCount >= maxConcurrentTasks {
+                    if let result = await group.next() {
+                        if let (id, analysisResult) = result {
+                            results[id] = analysisResult
+                        }
+                        activeTaskCount -= 1
+                    }
+                }
+
+                // Add new task
+                group.addTask {
+                    let result = await self.analyzeMoodWithFallback(content: entry.content)
+                    return (entry.id, result)
+                }
+                activeTaskCount += 1
+            }
+
+            // Collect remaining results
+            for await result in group {
+                if let (id, analysisResult) = result {
+                    results[id] = analysisResult
+                }
+            }
         }
 
         return results

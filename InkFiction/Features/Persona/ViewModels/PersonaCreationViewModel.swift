@@ -72,7 +72,7 @@ final class PersonaCreationViewModel {
     func savePersona(
         name: String,
         photo: UIImage,
-        generatedAvatars: [AvatarStyle: UIImage]
+        generatedAvatars: [AvatarStyle: Data]
     ) async {
         isCreating = true
         creationProgress = 0
@@ -104,19 +104,14 @@ final class PersonaCreationViewModel {
                 var progress = 0.0
                 let progressStep = 1.0 / Double(generatedAvatars.count)
 
-                for (style, image) in generatedAvatars {
+                for (style, imageData) in generatedAvatars {
                     // Check if style already exists - if so, remove it first
                     if let existingAvatar = repository.currentPersona?.avatar(for: style) {
                         try await repository.removeAvatar(existingAvatar)
                         Log.debug("Removed existing avatar for style: \(style.rawValue)", category: .persona)
                     }
 
-                    // Add new avatar
-                    guard let imageData = image.jpegData(compressionQuality: 0.85) else {
-                        Log.warning("Failed to convert image to data for style: \(style.rawValue)", category: .persona)
-                        continue
-                    }
-
+                    // Add new avatar (imageData is already Data)
                     _ = try await repository.addAvatar(style: style, imageData: imageData)
                     Log.debug("Added avatar for style: \(style.rawValue)", category: .persona)
 
@@ -137,12 +132,8 @@ final class PersonaCreationViewModel {
                 var progress = 0.2
                 let progressStep = 0.8 / Double(generatedAvatars.count)
 
-                for (style, image) in generatedAvatars {
-                    guard let imageData = image.jpegData(compressionQuality: 0.85) else {
-                        Log.warning("Failed to convert image to data for style: \(style.rawValue)", category: .persona)
-                        continue
-                    }
-
+                for (style, imageData) in generatedAvatars {
+                    // imageData is already Data, no need to convert
                     _ = try await repository.addAvatar(style: style, imageData: imageData)
                     Log.debug("Added avatar for style: \(style.rawValue)", category: .persona)
 
