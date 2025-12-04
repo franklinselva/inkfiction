@@ -94,10 +94,14 @@ final class PromptManager {
     func enhancementPrompt(
         content: String,
         style: EnhancementStyle,
-        companion: AICompanion? = nil
+        companion: AICompanion? = nil,
+        journalingStyle: JournalingStyle? = nil,
+        emotionalExpression: EmotionalExpression? = nil
     ) throws -> PromptComponents {
         var context = PromptContext(primaryContent: content)
         context.companion = companion
+        context.journalingStyle = journalingStyle
+        context.emotionalExpression = emotionalExpression
         context.customVariables = ["enhancementStyle": style.rawValue]
         return try buildPrompt(policyIdentifier: JournalEnhancementPolicy.policyId, context: context)
     }

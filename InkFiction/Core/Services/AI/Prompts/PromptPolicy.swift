@@ -144,6 +144,8 @@ struct PromptContext {
     var persona: PersonaProfileModel?
     var companion: AICompanion?
     var visualPreference: VisualPreference?
+    var journalingStyle: JournalingStyle?
+    var emotionalExpression: EmotionalExpression?
 
     // Journal-specific
     var journalEntry: JournalEntryModel?
@@ -166,6 +168,8 @@ struct PromptContext {
         persona: PersonaProfileModel? = nil,
         companion: AICompanion? = nil,
         visualPreference: VisualPreference? = nil,
+        journalingStyle: JournalingStyle? = nil,
+        emotionalExpression: EmotionalExpression? = nil,
         journalEntry: JournalEntryModel? = nil,
         journalEntries: [JournalEntryModel]? = nil,
         mood: Mood? = nil,
@@ -181,6 +185,8 @@ struct PromptContext {
         self.persona = persona
         self.companion = companion
         self.visualPreference = visualPreference
+        self.journalingStyle = journalingStyle
+        self.emotionalExpression = emotionalExpression
         self.journalEntry = journalEntry
         self.journalEntries = journalEntries
         self.mood = mood

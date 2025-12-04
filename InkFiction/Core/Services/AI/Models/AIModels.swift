@@ -178,9 +178,11 @@ struct AIResponse<T: Decodable>: Decodable {
 
 /// Error response from API
 struct AIErrorResponse: Decodable {
+    let type: String?
     let code: String
     let message: String
     let retryable: Bool?
+    let suggestion: String?
 }
 
 /// Mood analysis response

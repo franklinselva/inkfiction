@@ -323,12 +323,12 @@ struct JournalEditorView: View {
                 .font(.headline)
                 .foregroundColor(themeManager.currentTheme.textPrimaryColor)
 
-            if !viewModel.images.isEmpty || (viewModel.canGenerateAIImage && viewModel.canShowEnhancementFeatures) {
+            if !viewModel.images.isEmpty || ((viewModel.canGenerateAIImage || viewModel.isGeneratingImage) && viewModel.canShowEnhancementFeatures) {
                 // Image carousel
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         // AI Image Generate Button (appears after enhancement, only for enhanced/premium users)
-                        if viewModel.canGenerateAIImage && viewModel.canShowEnhancementFeatures {
+                        if (viewModel.canGenerateAIImage || viewModel.isGeneratingImage) && viewModel.canShowEnhancementFeatures {
                             aiImageGenerateButton(viewModel: viewModel)
                                 .transition(.scale.combined(with: .opacity))
                         }
@@ -351,7 +351,7 @@ struct JournalEditorView: View {
                     .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.canGenerateAIImage)
                 }
                 .frame(height: 120)
-            } else if !viewModel.canGenerateAIImage {
+            } else if !viewModel.canGenerateAIImage && !viewModel.isGeneratingImage {
                 // Empty state - clickable photo picker
                 PhotosPicker(
                     selection: $selectedPhotoItems,
@@ -588,7 +588,7 @@ struct JournalEditorView: View {
                             )
                     )
 
-                VStack(spacing: 6) {
+                VStack(spacing: 4) {
                     if viewModel.isGeneratingImage {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: themeManager.currentTheme.accentColor))
@@ -608,12 +608,38 @@ struct JournalEditorView: View {
                     Text("AI")
                         .font(.caption2.bold())
                         .foregroundColor(themeManager.currentTheme.accentColor)
+
+                    // Usage limit indicator
+                    aiImageUsageLimitText
                 }
             }
             .frame(width: 100, height: 100)
         }
         .disabled(viewModel.isGeneratingImage)
         .opacity(viewModel.isGeneratingImage ? 0.7 : 1.0)
+    }
+
+    /// Computed property for AI image usage limit text (e.g., "2/4")
+    private var aiImageUsageLimitText: some View {
+        let subscriptionService = SubscriptionService.shared
+        let remaining = subscriptionService.getRemainingJournalImages()
+        let total = subscriptionService.limits.dailyAIImageGenerations
+
+        return Group {
+            if total == -1 {
+                // Unlimited
+                Text("∞")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(themeManager.currentTheme.textSecondaryColor.opacity(0.7))
+            } else if total > 0 {
+                // Show remaining/total
+                Text("\(remaining)/\(total)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(remaining > 0
+                        ? themeManager.currentTheme.textSecondaryColor.opacity(0.7)
+                        : Color.red.opacity(0.8))
+            }
+        }
     }
 
     // MARK: - Actions

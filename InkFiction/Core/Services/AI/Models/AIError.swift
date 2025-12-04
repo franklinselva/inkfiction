@@ -39,6 +39,9 @@ enum AIError: LocalizedError {
     case invalidImageData
     case imageTooLarge(max: Int, actual: Int)
 
+    // Content safety errors
+    case contentSafetyBlocked(suggestion: String?)
+
     // Subscription errors
     case subscriptionRequired(feature: String)
     case dailyLimitReached(feature: String, limit: Int)
@@ -93,6 +96,12 @@ enum AIError: LocalizedError {
         case .imageTooLarge(let max, let actual):
             return "Image too large (\(actual) bytes). Maximum is \(max) bytes."
 
+        case .contentSafetyBlocked(let suggestion):
+            if let suggestion = suggestion {
+                return suggestion
+            }
+            return "Your content may have triggered safety filters. Please try rephrasing your journal entry with different wording."
+
         case .subscriptionRequired(let feature):
             return "\(feature) requires a subscription."
         case .dailyLimitReached(let feature, let limit):
@@ -121,6 +130,8 @@ enum AIError: LocalizedError {
             return false
         case .imageGenerationFailed, .invalidImageData, .imageTooLarge:
             return true
+        case .contentSafetyBlocked:
+            return false  // User needs to rephrase content
         case .invalidAPIKey, .invalidResponse:
             return false
         case .unknown:
@@ -147,6 +158,13 @@ enum AIError: LocalizedError {
 extension AIError {
     /// Create from API error response
     static func from(response: AIErrorResponse) -> AIError {
+        // First check for content safety blocked by type
+        if response.type == "GeminiContentBlockedError" ||
+           response.message.lowercased().contains("safety filter") ||
+           response.message.lowercased().contains("content blocked") {
+            return .contentSafetyBlocked(suggestion: response.suggestion)
+        }
+
         switch response.code {
         case "RATE_LIMITED":
             return .rateLimited(retryAfter: nil)
@@ -163,12 +181,22 @@ extension AIError {
         case "SUBSCRIPTION_REQUIRED":
             return .subscriptionRequired(feature: response.message)
         default:
+            // Use suggestion if available for better user message
+            if let suggestion = response.suggestion, !suggestion.isEmpty {
+                return .unknown(message: suggestion)
+            }
             return .unknown(message: response.message)
         }
     }
 
     /// Create from HTTP status code
     static func from(statusCode: Int, message: String? = nil) -> AIError {
+        // Check if message indicates content safety issue
+        if let msg = message?.lowercased(),
+           msg.contains("safety") || msg.contains("blocked") || msg.contains("content") {
+            return .contentSafetyBlocked(suggestion: nil)
+        }
+
         switch statusCode {
         case 400:
             return .invalidRequest(reason: message ?? "Bad request")
@@ -181,7 +209,9 @@ extension AIError {
         case 429:
             return .rateLimited(retryAfter: nil)
         case 500...599:
-            return .serverError(code: statusCode, message: message ?? "Internal server error")
+            // Provide more helpful message for 500 errors
+            let helpfulMessage = message ?? "Service temporarily unavailable. This may be due to content that triggered safety filters. Try rephrasing your entry."
+            return .serverError(code: statusCode, message: helpfulMessage)
         default:
             return .unknown(message: message ?? "Unknown error (code: \(statusCode))")
         }

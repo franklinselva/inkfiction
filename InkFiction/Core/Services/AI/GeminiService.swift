@@ -496,12 +496,16 @@ extension GeminiService {
     func enhanceEntry(
         content: String,
         style: EnhancementStyle,
-        companion: AICompanion? = nil
+        companion: AICompanion? = nil,
+        journalingStyle: JournalingStyle? = nil,
+        emotionalExpression: EmotionalExpression? = nil
     ) async throws -> EntryEnhancementResult {
         let promptComponents = try promptManager.enhancementPrompt(
             content: content,
             style: style,
-            companion: companion
+            companion: companion,
+            journalingStyle: journalingStyle,
+            emotionalExpression: emotionalExpression
         )
         let requirements = JournalEnhancementPolicy().modelRequirements
 

@@ -136,8 +136,12 @@ final class JournalEditorViewModel {
     }
 
     /// Whether AI image generation is available
+    /// Allows multiple images per entry as long as daily quota remains
     var canGenerateAIImage: Bool {
-        hasEnhanced && !generatedImagePrompt.isEmpty && !isGeneratingImage
+        hasEnhanced &&
+        !generatedImagePrompt.isEmpty &&
+        !isGeneratingImage &&
+        SubscriptionService.shared.canGenerateJournalImage()
     }
 
     /// Whether enhancement features should be shown to the user (subscription check)
@@ -423,18 +427,22 @@ extension JournalEditorViewModel {
         do {
             let geminiService = GeminiService.shared
 
-            // Get companion from settings
+            // Get preferences from settings
             let companion = getSelectedCompanion()
+            let journalingStyle = getJournalingStyle()
+            let emotionalExpression = getEmotionalExpression()
 
             let result = try await geminiService.enhanceEntry(
                 content: content,
                 style: enhancementStyle,
-                companion: companion
+                companion: companion,
+                journalingStyle: journalingStyle,
+                emotionalExpression: emotionalExpression
             )
 
             await MainActor.run {
                 content = result.enhancedContent
-                Log.info("Content enhanced with style: \(enhancementStyle.rawValue)", category: .journal)
+                Log.info("Content enhanced with style: \(enhancementStyle.rawValue), journalingStyle: \(journalingStyle?.rawValue ?? "none"), emotionalExpression: \(emotionalExpression?.rawValue ?? "none")", category: .journal)
             }
         } catch {
             await MainActor.run {
@@ -484,6 +492,14 @@ extension JournalEditorViewModel {
                 // Update title if empty
                 if title.isEmpty {
                     title = result.title
+                }
+
+                // Update content with rephrased/enhanced text
+                if let rephrase = result.rephrase, !rephrase.isEmpty {
+                    // Save original content for undo
+                    preEnhancementContent = content
+                    pushContentHistory()
+                    content = rephrase
                 }
 
                 // Update mood
@@ -568,6 +584,9 @@ extension JournalEditorViewModel {
                 )
                 images.append(newImage)
 
+                // Record usage for subscription tracking
+                SubscriptionService.shared.recordJournalImageGeneration()
+
                 Log.info("AI image generated and added to entry", category: .journal)
             }
         } catch {
@@ -621,17 +640,23 @@ extension JournalEditorViewModel {
     // MARK: - Private Helpers
 
     private func getSelectedCompanion() -> AICompanion? {
-        guard let companionId = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.selectedCompanionId) else {
-            return nil
-        }
-        return AICompanion.all.first { $0.id == companionId }
+        // Use SettingsRepository for reliable access (falls back to UserDefaults internally)
+        return SettingsRepository.shared.selectedCompanion
     }
 
     private func getVisualPreference() -> VisualPreference? {
-        guard let prefString = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.visualPreference) else {
-            return nil
-        }
-        return VisualPreference(rawValue: prefString)
+        // Use SettingsRepository for reliable access (falls back to UserDefaults internally)
+        return SettingsRepository.shared.visualPreference
+    }
+
+    private func getJournalingStyle() -> JournalingStyle? {
+        // Use SettingsRepository for reliable access (falls back to UserDefaults internally)
+        return SettingsRepository.shared.journalingStyle
+    }
+
+    private func getEmotionalExpression() -> EmotionalExpression? {
+        // Use SettingsRepository for reliable access (falls back to UserDefaults internally)
+        return SettingsRepository.shared.emotionalExpression
     }
 
     private func detectMoodLocally(from text: String) -> Mood {

@@ -51,8 +51,16 @@ struct JournalEnhancementPolicy: PromptPolicy {
     }
 
     func buildPrompt(context: PromptContext) throws -> PromptComponents {
+        // Build user preference instructions
+        let preferenceInstructions = buildPreferenceInstructions(
+            journalingStyle: context.journalingStyle,
+            emotionalExpression: context.emotionalExpression
+        )
+
         let systemPrompt = """
             Enhance journal entries in a \(enhancementStyle.description) style.
+
+            \(preferenceInstructions)
 
             Rules:
             - Maintain the user's voice and perspective (I/me/my)
@@ -87,6 +95,56 @@ struct JournalEnhancementPolicy: PromptPolicy {
             content: content,
             responseFormat: .plainText
         )
+    }
+
+    private func buildPreferenceInstructions(
+        journalingStyle: JournalingStyle?,
+        emotionalExpression: EmotionalExpression?
+    ) -> String {
+        var instructions: [String] = []
+
+        // Add journaling style instructions
+        if let style = journalingStyle {
+            instructions.append(buildJournalingStyleInstructions(style))
+        }
+
+        // Add emotional expression instructions
+        if let expression = emotionalExpression {
+            instructions.append(buildEmotionalExpressionInstructions(expression))
+        }
+
+        guard !instructions.isEmpty else { return "" }
+
+        return """
+            User Preferences:
+            \(instructions.joined(separator: "\n"))
+            """
+    }
+
+    private func buildJournalingStyleInstructions(_ style: JournalingStyle) -> String {
+        switch style {
+        case .quickNotes:
+            return "- The user prefers quick notes: Keep enhancements concise and to-the-point. Focus on clarity over elaboration."
+        case .detailedStories:
+            return "- The user prefers detailed stories: Feel free to expand on descriptions, add sensory details, and develop the narrative arc."
+        case .visualSketches:
+            return "- The user prefers visual expression: Enhance with vivid imagery, descriptive language that paints a picture, and sensory-rich details."
+        case .mixedMedia:
+            return "- The user prefers mixed media: Balance narrative text with moments that could pair well with images. Include evocative, scene-setting language."
+        }
+    }
+
+    private func buildEmotionalExpressionInstructions(_ expression: EmotionalExpression) -> String {
+        switch expression {
+        case .writingFreely:
+            return "- The user expresses emotions freely: Embrace raw, authentic emotional language. Don't hold back on expressing feelings deeply and openly."
+        case .structuredPrompts:
+            return "- The user prefers structured expression: Organize emotions clearly, perhaps with distinct sections for feelings, reflections, and takeaways."
+        case .moodTracking:
+            return "- The user focuses on mood tracking: Clearly highlight the emotional journey and mood shifts. Make emotions explicit and identifiable."
+        case .creativeExploration:
+            return "- The user explores emotions creatively: Use metaphors, analogies, and creative language to express emotions in unique, artistic ways."
+        }
     }
 
     private func buildCompanionContext(_ companion: AICompanion?, context: PromptContext) -> String {
