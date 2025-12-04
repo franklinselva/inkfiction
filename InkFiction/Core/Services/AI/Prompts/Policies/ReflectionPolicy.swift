@@ -117,26 +117,40 @@ struct MoodReflectionPolicy: PromptPolicy {
         let moodFocus = getMoodFocus(for: mood)
 
         let systemPrompt = """
-            Summarize \(mood.rawValue.lowercased()) journal entries.
-            Focus on: \(moodFocus)
+            You are an empathetic journal reflection assistant helping users understand their emotional patterns.
 
-            Provide concise summary capturing essence and emotions.
+            Your task is to analyze journal entries that express \(mood.rawValue.lowercased()) feelings.
+
+            Focus areas for this mood:
+            - \(moodFocus)
+
+            Guidelines:
+            - Write with warmth and understanding
+            - Identify recurring themes and patterns
+            - Note the emotional tone without judgment
+            - Be concise but insightful
+
+            You MUST respond with valid JSON only.
             """
 
         let chunkInfo = context.customVariables?["chunkInfo"] ?? "chunk"
 
         let content = """
-            Entries (\(chunkInfo)):
+            JOURNAL ENTRIES TO ANALYZE (\(chunkInfo)):
+
             \(context.primaryContent)
 
-            Provide a JSON response with:
+            ---
+
+            Based on these journal entries, provide your analysis as a JSON object with exactly this structure:
+
             {
-              "summary": "100-150 word summary capturing essence and emotions",
+              "summary": "A 100-150 word summary that captures the essence of these entries, their emotional depth, and any patterns you notice. Write as if speaking directly to the journal writer.",
               "themes": ["theme1", "theme2", "theme3"],
-              "emotional_tone": "1-2 word description"
+              "emotional_tone": "one or two words describing the overall emotional tone"
             }
 
-            Be concise, insightful, and focus on the emotional journey.
+            Respond ONLY with the JSON object, no additional text.
             """
 
         return PromptComponents(
@@ -156,31 +170,44 @@ struct MoodReflectionPolicy: PromptPolicy {
         let moodContext = getMoodContext(for: mood)
 
         let systemPrompt = """
-            Create a reflective analysis for \(mood.rawValue.lowercased()) mood.
+            You are a compassionate journal reflection assistant creating a meaningful reflection for the user.
 
-            Generate cohesive reflection that \(moodContext).
-            Write with empathy, insight, and encouragement.
+            Your task is to synthesize multiple journal summaries into one cohesive reflection about \(mood.rawValue.lowercased()) experiences.
+
+            Your reflection should:
+            - \(moodContext)
+            - Write with empathy, insight, and encouragement
+            - Speak directly to the user using "you" language
+            - Be authentic without being overly positive
+
+            You MUST respond with valid JSON only.
             """
 
-        let timeframeText = context.timeframe?.rawValue ?? "recent"
-        let entryCount = context.customVariables?["entryCount"] ?? "unknown"
+        let timeframeText = context.timeframe?.displayName ?? "recent period"
+        let entryCount = context.customVariables?["entryCount"] ?? "several"
 
         let content = """
-            Timeframe: \(timeframeText)
-            Total entries: \(entryCount)
+            CONTEXT:
+            - Timeframe: \(timeframeText)
+            - Total entries analyzed: \(entryCount)
+            - Mood focus: \(mood.rawValue)
 
-            Period summaries:
+            SUMMARIES FROM JOURNAL ANALYSIS:
+
             \(secondaryContent)
 
-            Generate a JSON response:
+            ---
+
+            Based on these summaries, create a cohesive reflection as a JSON object with exactly this structure:
+
             {
-              "summary": "150-200 word cohesive reflection",
-              "key_insight": "One powerful takeaway sentence",
-              "themes": ["recurring_theme1", "recurring_theme2", "recurring_theme3"],
-              "emotional_progression": "How emotions evolved over time (1 sentence)"
+              "summary": "A 150-200 word cohesive reflection that weaves together the themes and insights from the summaries. Address the user directly and acknowledge their emotional journey during this period.",
+              "key_insight": "One powerful, memorable takeaway sentence that captures the essence of their experience",
+              "themes": ["theme1", "theme2", "theme3"],
+              "emotional_progression": "A single sentence describing how the user's emotions evolved during this period"
             }
 
-            Write with empathy, insight, and encouragement.
+            Respond ONLY with the JSON object, no additional text.
             """
 
         return PromptComponents(

@@ -230,8 +230,29 @@ final class GeminiService {
         )
 
         // Extract text from response
-        guard let text = response.extractText() else {
+        guard var text = response.extractText() else {
+            // Log debugging info for empty response
+            Log.warning("Empty text from response. Candidates count: \(response.candidates?.count ?? 0)", category: .ai)
+            if let firstCandidate = response.candidates?.first {
+                Log.warning("First candidate content: \(firstCandidate.content != nil), parts count: \(firstCandidate.content?.parts?.count ?? 0)", category: .ai)
+                if let finishReason = firstCandidate.finishReason {
+                    Log.warning("Finish reason: \(finishReason)", category: .ai)
+                }
+            }
             throw AIError.emptyResponse
+        }
+
+        // Strip markdown code blocks if present (```json ... ``` or ``` ... ```)
+        if text.hasPrefix("```") {
+            // Remove opening fence (```json or ```)
+            if let endOfFirstLine = text.firstIndex(of: "\n") {
+                text = String(text[text.index(after: endOfFirstLine)...])
+            }
+            // Remove closing fence
+            if let lastFence = text.range(of: "```", options: .backwards) {
+                text = String(text[..<lastFence.lowerBound])
+            }
+            text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
         return text

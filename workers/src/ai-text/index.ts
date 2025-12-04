@@ -55,12 +55,20 @@ async function generateContent(
   generationConfig?: GenerationConfig
 ): Promise<unknown> {
   console.log('[AI-Text] Calling Gemini API...');
+  console.log(`[AI-Text] Config: maxOutputTokens=${generationConfig?.maxOutputTokens}, responseMimeType=${generationConfig?.responseMimeType}`);
+
+  // Build config with explicit maxOutputTokens - try both property names for SDK compatibility
+  const config = {
+    ...generationConfig,
+    maxOutputTokens: generationConfig?.maxOutputTokens ?? 2048,
+  };
 
   try {
+    // Try using generationConfig property (older SDK style)
     const response = await ai.models.generateContent({
       model: TEXT_MODEL,
       contents: contents,
-      config: generationConfig,
+      generationConfig: config,  // Use generationConfig instead of config
     });
 
     // Log token usage for analytics

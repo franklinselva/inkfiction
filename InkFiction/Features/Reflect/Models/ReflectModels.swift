@@ -11,7 +11,7 @@ import SwiftUI
 // MARK: - Mood Reflection
 
 /// AI-generated reflection based on journal entries
-struct MoodReflection: Identifiable, Equatable {
+struct MoodReflection: Identifiable, Equatable, Codable {
     let id: UUID
     let mood: Mood
     let timeframe: TimeFrame
@@ -24,7 +24,7 @@ struct MoodReflection: Identifiable, Equatable {
     let generatedAt: Date
     let metadata: ProcessingMetadata
 
-    struct ProcessingMetadata: Equatable {
+    struct ProcessingMetadata: Equatable, Codable {
         let totalTokensUsed: Int
         let chunksProcessed: Int
         let averageTokensPerChunk: Int
@@ -68,7 +68,7 @@ struct MoodReflection: Identifiable, Equatable {
 // MARK: - Time Frame
 
 /// Time period for filtering and reflection
-enum TimeFrame: String, CaseIterable, Identifiable {
+enum TimeFrame: String, CaseIterable, Identifiable, Codable {
     case today = "Today"
     case thisWeek = "This Week"
     case thisMonth = "This Month"

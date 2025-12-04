@@ -57,8 +57,8 @@ struct MoodDetailSheet: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 24)
 
-                    // Mood statistics
-                    MoodStatsSection(moodData: moodData)
+                    // AI Reflection section
+                    MoodReflectionView(moodData: moodData, timeframe: timeframe)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 24)
 
@@ -71,19 +71,6 @@ struct MoodDetailSheet: View {
                             .padding(.bottom, 24)
 
                         VisualMemoriesSection(entries: moodData.entries)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
-                    }
-
-                    // Recent entries section
-                    if !moodData.entries.isEmpty {
-                        Rectangle()
-                            .fill(theme.strokeColor.opacity(0.15))
-                            .frame(height: 1)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 24)
-
-                        RecentEntriesSection(entries: moodData.entries)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 40)
                     }
