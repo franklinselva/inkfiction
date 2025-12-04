@@ -46,12 +46,31 @@ enum Constants {
     // MARK: - AI
 
     enum AI {
-        /// Base URL for AI API (Cloudflare Workers backend)
-        /// Set this to your deployed Cloudflare Worker URL
-        static let baseURL = "" // e.g., "https://inkfiction-api.your-subdomain.workers.dev/api"
+        /// Base URL for AI Text generation API (Cloudflare Workers backend)
+        /// For local development: http://localhost:8787
+        /// For production: https://inkfiction-ai-text.your-subdomain.workers.dev
+        static var textBaseURL: String {
+            #if DEBUG
+            return UserDefaults.standard.string(forKey: "ai_text_base_url") ?? "http://localhost:8787"
+            #else
+            return UserDefaults.standard.string(forKey: "ai_text_base_url") ?? ""
+            #endif
+        }
 
-        /// Gemini model identifier
-        static let modelId = "gemini-2.5-flash-preview-05-20"
+        /// Base URL for AI Image generation API (Cloudflare Workers backend)
+        /// For local development: http://localhost:8788
+        /// For production: https://inkfiction-ai-image.your-subdomain.workers.dev
+        static var imageBaseURL: String {
+            #if DEBUG
+            return UserDefaults.standard.string(forKey: "ai_image_base_url") ?? "http://localhost:8788"
+            #else
+            return UserDefaults.standard.string(forKey: "ai_image_base_url") ?? ""
+            #endif
+        }
+
+        /// Gemini model identifiers
+        static let textModelId = "gemini-2.5-flash"
+        static let imageModelId = "gemini-2.5-flash-preview-05-20"
 
         enum Timeouts {
             static let `default`: TimeInterval = 30
@@ -60,14 +79,17 @@ enum Constants {
             static let reflection: TimeInterval = 90
         }
 
-        enum Endpoints {
-            static let analyzeMood = "ai/analyze-mood"
-            static let generateTitle = "ai/generate-title"
-            static let enhanceEntry = "ai/enhance-entry"
-            static let generateImage = "ai/generate-image"
-            static let generateReflection = "ai/generate-reflection"
-            static let processJournal = "ai/process-journal"
-            static let generatePersonaBio = "ai/generate-persona-bio"
+        /// Operations recognized by Cloudflare Workers
+        enum Operations {
+            // Text operations
+            static let journalProcessing = "journal_processing"
+            static let weeklyMonthlySummary = "weekly_monthly_summary"
+            static let personaCreation = "persona_creation"
+            static let chat = "chat"
+
+            // Image operations
+            static let journalImage = "journal_image"
+            static let personaAvatar = "persona_avatar"
         }
 
         enum Limits {
@@ -76,6 +98,14 @@ enum Constants {
             static let maxImagePromptLength = 500
             static let minContentForTitle = 10
             static let minContentForProcessing = 20
+            static let maxReferenceImages = 3
+        }
+
+        /// Generation config defaults
+        enum GenerationConfig {
+            static let defaultTemperature: Double = 0.7
+            static let defaultMaxOutputTokens: Int = 2048
+            static let imageTemperature: Double = 0.8
         }
     }
 

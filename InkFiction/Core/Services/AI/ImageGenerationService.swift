@@ -50,6 +50,7 @@ final class ImageGenerationService {
     func generatePersonaAvatar(
         persona: PersonaProfileModel,
         style: AvatarStyle,
+        referenceImage: Data? = nil,
         progressHandler: ((Double) -> Void)? = nil
     ) async throws -> Data {
         // Check subscription
@@ -66,35 +67,25 @@ final class ImageGenerationService {
 
         Log.info("Generating persona avatar: \(persona.name) in \(style.displayName) style", category: .ai)
 
-        // Build prompt
-        let context = PromptContext(
-            primaryContent: persona.name,
-            persona: persona,
-            imageStyle: style
-        )
-
-        let promptComponents = try promptManager.buildPrompt(
-            policyIdentifier: PersonaAvatarPolicy.policyId,
-            context: context
-        )
+        // Use PromptManager to build the avatar prompt using PersonaAvatarPolicy
+        let promptComponents = try promptManager.avatarPrompt(persona: persona, style: style)
 
         progressHandler?(0.2)
         generationProgress = 0.2
 
-        // Generate image
-        let result = try await geminiService.generateImage(
+        Log.debug("Avatar prompt built via PersonaAvatarPolicy: \(promptComponents.combinedPrompt.prefix(200))...", category: .ai)
+
+        // Generate image using Cloudflare Workers
+        let (imageData, _) = try await geminiService.generateImage(
             prompt: promptComponents.combinedPrompt,
-            style: style,
-            type: .avatar,
-            aspectRatio: .square
+            aspectRatio: "1:1",
+            styleType: style.cfStyleType,
+            referenceImages: referenceImage.map { [$0] },
+            operation: Constants.AI.Operations.personaAvatar
         )
 
         progressHandler?(0.8)
         generationProgress = 0.8
-
-        guard let imageData = result.imageData else {
-            throw AIError.invalidImageData
-        }
 
         // Record usage
         subscriptionService.recordPersonaAvatarGeneration()
@@ -111,6 +102,7 @@ final class ImageGenerationService {
     func generatePersonaAvatars(
         persona: PersonaProfileModel,
         styles: [AvatarStyle],
+        referenceImage: Data? = nil,
         progressHandler: ((AvatarStyle, Double) -> Void)? = nil
     ) async throws -> [AvatarStyle: Data] {
         var results: [AvatarStyle: Data] = [:]
@@ -122,7 +114,8 @@ final class ImageGenerationService {
             do {
                 let imageData = try await generatePersonaAvatar(
                     persona: persona,
-                    style: style
+                    style: style,
+                    referenceImage: referenceImage
                 ) { progress in
                     let adjustedProgress = overallProgress + (progress / Double(styles.count))
                     progressHandler?(style, adjustedProgress)
@@ -143,8 +136,8 @@ final class ImageGenerationService {
     func generateJournalImage(
         entry: JournalEntryModel,
         sceneDescription: String,
-        persona: PersonaProfileModel?,
-        visualPreference: VisualPreference?,
+        persona: PersonaProfileModel? = nil,
+        visualPreference: VisualPreference? = nil,
         progressHandler: ((Double) -> Void)? = nil
     ) async throws -> Data {
         // Check subscription
@@ -161,44 +154,28 @@ final class ImageGenerationService {
 
         Log.info("Generating journal image for entry: \(entry.title)", category: .ai)
 
-        // Determine style based on mood and preference
-        let style = JournalProcessingPolicy.suggestAvatarStyle(
+        // Use PromptManager to build the journal image prompt using JournalImagePolicy
+        let promptComponents = try promptManager.journalImagePrompt(
+            sceneDescription: sceneDescription,
+            persona: persona,
             mood: entry.mood,
             visualPreference: visualPreference
-        )
-
-        // Build prompt
-        let context = PromptContext(
-            primaryContent: sceneDescription,
-            persona: persona,
-            visualPreference: visualPreference,
-            journalEntry: entry,
-            mood: entry.mood,
-            imageStyle: style
-        )
-
-        let promptComponents = try promptManager.buildPrompt(
-            policyIdentifier: JournalImagePolicy.policyId,
-            context: context
         )
 
         progressHandler?(0.2)
         generationProgress = 0.2
 
-        // Generate image
-        let result = try await geminiService.generateImage(
+        Log.debug("Journal image prompt built via JournalImagePolicy: \(promptComponents.combinedPrompt.prefix(200))...", category: .ai)
+
+        // Generate image using Cloudflare Workers
+        let (imageData, _) = try await geminiService.generateImage(
             prompt: promptComponents.combinedPrompt,
-            style: style,
-            type: .journal,
-            aspectRatio: .landscape
+            aspectRatio: "16:9",
+            operation: Constants.AI.Operations.journalImage
         )
 
         progressHandler?(0.8)
         generationProgress = 0.8
-
-        guard let imageData = result.imageData else {
-            throw AIError.invalidImageData
-        }
 
         // Record usage
         subscriptionService.recordJournalImageGeneration()
@@ -215,8 +192,8 @@ final class ImageGenerationService {
     func generateJournalImage(
         from processingResult: JournalProcessingResult,
         entry: JournalEntryModel,
-        persona: PersonaProfileModel?,
-        visualPreference: VisualPreference?,
+        persona: PersonaProfileModel? = nil,
+        visualPreference: VisualPreference? = nil,
         progressHandler: ((Double) -> Void)? = nil
     ) async throws -> Data? {
         guard let imagePrompt = processingResult.imagePrompt, !imagePrompt.isEmpty else {
@@ -255,7 +232,7 @@ final class ImageGenerationService {
 
     /// Check if image generation is available
     var isAvailable: Bool {
-        !geminiService.baseURL.isEmpty
+        !geminiService.imageBaseURL.isEmpty
     }
 
     /// Check remaining quota

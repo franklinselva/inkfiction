@@ -26,6 +26,21 @@ final class ReflectViewModel {
     private(set) var latestReflection: MoodReflection?
     private(set) var error: ReflectError?
 
+    /// Whether AI reflection is being generated
+    private(set) var isGeneratingReflection: Bool = false
+
+    /// AI-generated reflection text
+    private(set) var aiReflectionText: String?
+
+    /// AI-generated insights
+    private(set) var aiInsights: [String] = []
+
+    /// AI-generated suggestions
+    private(set) var aiSuggestions: [String] = []
+
+    /// AI mood trend analysis
+    private(set) var aiMoodTrend: MoodTrend?
+
     var timeframe: TimeFrame = .thisMonth
 
     var config: ReflectionConfig = .default
@@ -280,6 +295,106 @@ final class ReflectViewModel {
         }
 
         return positioned
+    }
+
+    // MARK: - AI Reflection Generation
+
+    /// Generate AI-powered reflection for current entries and timeframe
+    func generateAIReflection(companion: AICompanion? = nil) async {
+        guard !entries.isEmpty else {
+            Log.warning("No entries available for AI reflection", category: .moodAnalysis)
+            return
+        }
+
+        isGeneratingReflection = true
+        self.error = nil
+
+        do {
+            let geminiService = GeminiService.shared
+
+            // Get the companion from settings if not provided
+            let selectedCompanion = companion ?? getSelectedCompanion()
+
+            Log.info("Generating AI reflection for \(entries.count) entries in \(timeframe.displayName)", category: .moodAnalysis)
+
+            let result = try await geminiService.generateReflection(
+                entries: entries,
+                timeframe: timeframe,
+                companion: selectedCompanion
+            )
+
+            // Update state with results
+            aiReflectionText = result.reflection
+            aiInsights = result.insights ?? []
+            aiSuggestions = result.suggestions ?? []
+            aiMoodTrend = result.moodTrend
+
+            Log.info("AI reflection generated successfully", category: .moodAnalysis)
+
+        } catch let aiError as AIError {
+            Log.error("AI reflection generation failed", error: aiError, category: .moodAnalysis)
+            self.error = .apiError(aiError.localizedDescription)
+        } catch {
+            Log.error("AI reflection generation failed", error: error, category: .moodAnalysis)
+            self.error = .reflectionGenerationFailed
+        }
+
+        isGeneratingReflection = false
+    }
+
+    /// Generate reflection for a specific mood
+    func generateMoodReflection(for mood: Mood, companion: AICompanion? = nil) async {
+        let moodEntries = entriesForMood(mood)
+
+        guard !moodEntries.isEmpty else {
+            Log.warning("No entries for mood \(mood.rawValue)", category: .moodAnalysis)
+            return
+        }
+
+        isGeneratingReflection = true
+        self.error = nil
+
+        do {
+            let geminiService = GeminiService.shared
+            let selectedCompanion = companion ?? getSelectedCompanion()
+
+            Log.info("Generating mood-specific reflection for \(mood.rawValue)", category: .moodAnalysis)
+
+            let result = try await geminiService.generateReflection(
+                entries: moodEntries,
+                timeframe: timeframe,
+                companion: selectedCompanion
+            )
+
+            aiReflectionText = result.reflection
+            aiInsights = result.insights ?? []
+            aiSuggestions = result.suggestions ?? []
+            aiMoodTrend = result.moodTrend
+
+            Log.info("Mood-specific reflection generated for \(mood.rawValue)", category: .moodAnalysis)
+
+        } catch {
+            Log.error("Mood reflection generation failed", error: error, category: .moodAnalysis)
+            self.error = .reflectionGenerationFailed
+        }
+
+        isGeneratingReflection = false
+    }
+
+    /// Clear AI reflection data
+    func clearAIReflection() {
+        aiReflectionText = nil
+        aiInsights = []
+        aiSuggestions = []
+        aiMoodTrend = nil
+    }
+
+    /// Get the selected AI companion from user defaults
+    private func getSelectedCompanion() -> AICompanion? {
+        guard let companionId = UserDefaults.standard.string(forKey: Constants.UserDefaultsKeys.selectedCompanionId) else {
+            return nil
+        }
+        return AICompanion.all.first { $0.id == companionId }
     }
 }
 

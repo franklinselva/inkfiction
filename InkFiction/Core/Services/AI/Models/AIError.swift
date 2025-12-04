@@ -19,6 +19,7 @@ enum AIError: LocalizedError {
     // API errors
     case invalidResponse
     case serverError(code: Int, message: String)
+    case apiError(code: String, message: String, retryable: Bool)
     case rateLimited(retryAfter: TimeInterval?)
     case quotaExceeded
     case invalidAPIKey
@@ -59,6 +60,8 @@ enum AIError: LocalizedError {
             return "Invalid response from server."
         case .serverError(let code, let message):
             return "Server error (\(code)): \(message)"
+        case .apiError(_, let message, _):
+            return message
         case .rateLimited(let retryAfter):
             if let seconds = retryAfter {
                 return "Too many requests. Please wait \(Int(seconds)) seconds."
@@ -106,6 +109,8 @@ enum AIError: LocalizedError {
         switch self {
         case .networkError, .timeout, .serverError:
             return true
+        case .apiError(_, _, let retryable):
+            return retryable
         case .rateLimited:
             return true
         case .noConnection, .quotaExceeded, .subscriptionRequired, .dailyLimitReached:

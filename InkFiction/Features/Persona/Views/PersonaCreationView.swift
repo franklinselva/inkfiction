@@ -573,7 +573,7 @@ struct PersonaCreationView: View {
             let displayName = personaName.trimmingCharacters(in: .whitespacesAndNewlines)
 
             do {
-                try await simulateGeneration(image: image, styles: stylesToGenerate, name: displayName)
+                try await generateAvatars(image: image, styles: stylesToGenerate, name: displayName)
 
                 await MainActor.run {
                     isGenerating = false
@@ -592,26 +592,66 @@ struct PersonaCreationView: View {
         }
     }
 
-    private func simulateGeneration(image: UIImage, styles: [AvatarStyle], name: String) async throws {
+    private func generateAvatars(image: UIImage, styles: [AvatarStyle], name: String) async throws {
+        let imageGenerationService = ImageGenerationService.shared
+
+        // Convert UIImage to JPEG data for reference
+        guard let referenceImageData = image.jpegData(compressionQuality: 0.8) else {
+            throw AIError.invalidImageData
+        }
+
+        // Create a temporary PersonaProfileModel for the prompt policy
+        let tempPersona = PersonaProfileModel(name: name)
+
         for (index, style) in styles.enumerated() {
-            try await Task.sleep(nanoseconds: 500_000_000)
+            do {
+                // Generate avatar using ImageGenerationService (which uses PromptManager -> PersonaAvatarPolicy)
+                let generatedImageData = try await imageGenerationService.generatePersonaAvatar(
+                    persona: tempPersona,
+                    style: style,
+                    referenceImage: referenceImageData
+                ) { progress in
+                    // Update progress for this style
+                    Task { @MainActor in
+                        let baseProgress = Double(index) / Double(styles.count)
+                        let styleProgress = progress / Double(styles.count)
+                        self.generationProgress = baseProgress + styleProgress
+                    }
+                }
 
-            await MainActor.run {
-                let progress = Double(index + 1) / Double(styles.count)
-                generationProgress = progress
+                // Convert to UIImage
+                guard let generatedImage = UIImage(data: generatedImageData) else {
+                    Log.warning("Failed to convert generated image data for style: \(style.rawValue)", category: .persona)
+                    // Use original image as fallback
+                    await updateProgress(index: index, total: styles.count, style: style, image: image, name: name)
+                    continue
+                }
 
-                generatedStyles[style] = image
+                await updateProgress(index: index, total: styles.count, style: style, image: generatedImage, name: name)
 
-                let caption = "\(style.captionPrefix) \(name)"
-                let container = ImageContainer(
-                    id: UUID(),
-                    uiImage: image,
-                    caption: caption,
-                    date: Date()
-                )
-                selectedImageContainers.append(container)
+            } catch {
+                Log.error("Avatar generation failed for style \(style.rawValue)", error: error, category: .persona)
+                // Use original image as fallback for this style
+                await updateProgress(index: index, total: styles.count, style: style, image: image, name: name)
             }
         }
+    }
+
+    @MainActor
+    private func updateProgress(index: Int, total: Int, style: AvatarStyle, image: UIImage, name: String) {
+        let progress = Double(index + 1) / Double(total)
+        generationProgress = progress
+
+        generatedStyles[style] = image
+
+        let caption = "\(style.captionPrefix) \(name)"
+        let container = ImageContainer(
+            id: UUID(),
+            uiImage: image,
+            caption: caption,
+            date: Date()
+        )
+        selectedImageContainers.append(container)
     }
 
     private func createPersona() {

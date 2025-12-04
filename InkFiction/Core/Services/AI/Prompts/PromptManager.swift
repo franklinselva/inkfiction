@@ -28,6 +28,7 @@ final class PromptManager {
         register(JournalEnhancementPolicy())
         register(JournalImagePolicy())
         register(PersonaAvatarPolicy())
+        register(PersonaBioPolicy())
         register(ReflectionPolicy())
         register(JournalProcessingPolicy())
     }
@@ -124,6 +125,18 @@ final class PromptManager {
         context.persona = persona
         context.imageStyle = style
         return try buildPrompt(policyIdentifier: PersonaAvatarPolicy.policyId, context: context)
+    }
+
+    /// Persona bio prompt (for generating bio from photo)
+    func personaBioPrompt(
+        personaName: String,
+        personaType: PersonaType,
+        style: AvatarStyle
+    ) throws -> PromptComponents {
+        var context = PromptContext(primaryContent: personaName)
+        context.imageStyle = style
+        context.customVariables = ["personaType": personaType.rawValue]
+        return try buildPrompt(policyIdentifier: PersonaBioPolicy.policyId, context: context)
     }
 
     /// Reflection prompt
