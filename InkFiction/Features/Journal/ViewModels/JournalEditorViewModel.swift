@@ -474,8 +474,10 @@ extension JournalEditorViewModel {
         do {
             let geminiService = GeminiService.shared
 
-            // Get persona and visual preference from settings
+            // Get persona and preferences from settings
             let visualPreference = getVisualPreference()
+            let journalingStyle = getJournalingStyle()
+            let emotionalExpression = getEmotionalExpression()
 
             // Load persona if not already loaded
             if !personaRepository.isLoaded {
@@ -485,7 +487,9 @@ extension JournalEditorViewModel {
             let result = try await geminiService.processJournalEntry(
                 content: content,
                 persona: personaRepository.currentPersona,
-                visualPreference: visualPreference
+                visualPreference: visualPreference,
+                journalingStyle: journalingStyle,
+                emotionalExpression: emotionalExpression
             )
 
             await MainActor.run {
@@ -522,7 +526,7 @@ extension JournalEditorViewModel {
                 // Mark as enhanced
                 hasEnhanced = true
 
-                Log.info("Journal entry processed: title=\(result.title), mood=\(result.mood)", category: .journal)
+                Log.info("Journal entry processed: title=\(result.title), mood=\(result.mood), journalingStyle=\(journalingStyle?.rawValue ?? "none"), emotionalExpression=\(emotionalExpression?.rawValue ?? "none")", category: .journal)
             }
         } catch {
             await MainActor.run {
@@ -563,11 +567,15 @@ extension JournalEditorViewModel {
                 try? await personaRepository.loadPersona()
             }
 
+            // Select reference avatar dynamically based on mood and visual preference
+            let referenceImageData = selectReferenceAvatar(mood: mood, visualPreference: visualPreference)
+
             let (imageData, _) = try await geminiService.generateJournalImage(
                 sceneDescription: imagePrompt,
                 persona: personaRepository.currentPersona,
                 mood: mood,
-                visualPreference: visualPreference
+                visualPreference: visualPreference,
+                referenceImage: referenceImageData
             )
 
             // Convert to UIImage
@@ -598,6 +606,42 @@ extension JournalEditorViewModel {
         }
 
         isGeneratingImage = false
+    }
+
+    /// Select the best reference avatar based on mood and visual preference
+    private func selectReferenceAvatar(mood: Mood, visualPreference: VisualPreference?) -> Data? {
+        guard let persona = personaRepository.currentPersona else {
+            Log.debug("No persona available for reference avatar selection", category: .journal)
+            return nil
+        }
+
+        // Get suggested avatar style based on mood and visual preference
+        let suggestedStyle = JournalProcessingPolicy.suggestAvatarStyle(
+            mood: mood,
+            visualPreference: visualPreference
+        )
+
+        // Try to find avatar for suggested style
+        if let avatar = persona.avatar(for: suggestedStyle), let imageData = avatar.imageData {
+            Log.debug("Using \(suggestedStyle.displayName) avatar as reference (matched mood/preference)", category: .journal)
+            return imageData
+        }
+
+        // Fall back to active avatar
+        if let activeAvatar = persona.activeAvatar, let imageData = activeAvatar.imageData {
+            Log.debug("Using active avatar (\(activeAvatar.style.displayName)) as reference (fallback)", category: .journal)
+            return imageData
+        }
+
+        // Fall back to any available avatar
+        if let anyAvatar = persona.avatars?.first(where: { $0.imageData != nil }),
+           let imageData = anyAvatar.imageData {
+            Log.debug("Using \(anyAvatar.style.displayName) avatar as reference (any available)", category: .journal)
+            return imageData
+        }
+
+        Log.debug("No avatar available for reference", category: .journal)
+        return nil
     }
 
     /// Analyze the mood of the content using AI

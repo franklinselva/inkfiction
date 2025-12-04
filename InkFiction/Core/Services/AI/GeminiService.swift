@@ -529,12 +529,16 @@ extension GeminiService {
     func processJournalEntry(
         content: String,
         persona: PersonaProfileModel? = nil,
-        visualPreference: VisualPreference? = nil
+        visualPreference: VisualPreference? = nil,
+        journalingStyle: JournalingStyle? = nil,
+        emotionalExpression: EmotionalExpression? = nil
     ) async throws -> JournalProcessingResult {
         let promptComponents = try promptManager.journalProcessingPrompt(
             content: content,
             persona: persona,
-            visualPreference: visualPreference
+            visualPreference: visualPreference,
+            journalingStyle: journalingStyle,
+            emotionalExpression: emotionalExpression
         )
         let requirements = JournalProcessingPolicy().modelRequirements
 
@@ -576,7 +580,8 @@ extension GeminiService {
         sceneDescription: String,
         persona: PersonaProfileModel? = nil,
         mood: Mood,
-        visualPreference: VisualPreference? = nil
+        visualPreference: VisualPreference? = nil,
+        referenceImage: Data? = nil
     ) async throws -> (data: Data, mimeType: String) {
         let promptComponents = try promptManager.journalImagePrompt(
             sceneDescription: sceneDescription,
@@ -588,6 +593,7 @@ extension GeminiService {
         return try await generateImage(
             prompt: promptComponents.combinedPrompt,
             aspectRatio: "16:9",
+            referenceImages: referenceImage.map { [$0] },
             operation: Constants.AI.Operations.journalImage
         )
     }

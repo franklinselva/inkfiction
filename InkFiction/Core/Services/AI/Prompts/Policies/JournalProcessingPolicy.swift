@@ -68,12 +68,20 @@ struct JournalProcessingPolicy: PromptPolicy {
         // Build avatar style guidance
         let avatarStyleGuidance = buildAvatarStyleGuidance(persona: persona)
 
+        // Build user preference instructions for journaling style and emotional expression
+        let preferenceInstructions = buildPreferenceInstructions(
+            journalingStyle: context.journalingStyle,
+            emotionalExpression: context.emotionalExpression
+        )
+
         // System prompt with persona awareness and style guidance
         let systemPrompt = """
             Analyze journal entries to extract structured information.
 
             IMPORTANT: This journal belongs to \(persona.name), a character with the following profile:
             \(personaDescription)
+
+            \(preferenceInstructions)
 
             Extract:
             1. title: Concise, meaningful title (3-6 words)
@@ -199,6 +207,58 @@ struct JournalProcessingPolicy: PromptPolicy {
         parts.append("\(attributes.clothingStyle.rawValue) clothing")
 
         return parts.joined(separator: ", ")
+    }
+
+    // MARK: - User Preference Instructions
+
+    private func buildPreferenceInstructions(
+        journalingStyle: JournalingStyle?,
+        emotionalExpression: EmotionalExpression?
+    ) -> String {
+        var instructions: [String] = []
+
+        // Add journaling style instructions
+        if let style = journalingStyle {
+            instructions.append(buildJournalingStyleInstructions(style))
+        }
+
+        // Add emotional expression instructions
+        if let expression = emotionalExpression {
+            instructions.append(buildEmotionalExpressionInstructions(expression))
+        }
+
+        guard !instructions.isEmpty else { return "" }
+
+        return """
+            USER PREFERENCES (Apply these when generating rephrase and imagePrompt):
+            \(instructions.joined(separator: "\n"))
+            """
+    }
+
+    private func buildJournalingStyleInstructions(_ style: JournalingStyle) -> String {
+        switch style {
+        case .quickNotes:
+            return "- Journaling Style: Quick Notes - Keep rephrased content concise and to-the-point. Focus on clarity over elaboration."
+        case .detailedStories:
+            return "- Journaling Style: Detailed Stories - Expand on descriptions, add sensory details, and develop the narrative arc in rephrased content."
+        case .visualSketches:
+            return "- Journaling Style: Visual Expression - Use vivid imagery, descriptive language that paints a picture, and sensory-rich details."
+        case .mixedMedia:
+            return "- Journaling Style: Mixed Media - Balance narrative text with evocative, scene-setting language that pairs well with images."
+        }
+    }
+
+    private func buildEmotionalExpressionInstructions(_ expression: EmotionalExpression) -> String {
+        switch expression {
+        case .writingFreely:
+            return "- Emotional Expression: Writing Freely - Embrace raw, authentic emotional language. Express feelings deeply and openly in rephrased content."
+        case .structuredPrompts:
+            return "- Emotional Expression: Structured - Organize emotions clearly with distinct sections for feelings, reflections, and takeaways."
+        case .moodTracking:
+            return "- Emotional Expression: Mood Tracking - Clearly highlight the emotional journey and mood shifts. Make emotions explicit and identifiable."
+        case .creativeExploration:
+            return "- Emotional Expression: Creative Exploration - Use metaphors, analogies, and creative language to express emotions in unique, artistic ways."
+        }
     }
 
     // MARK: - Avatar Style Selection

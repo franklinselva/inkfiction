@@ -164,11 +164,15 @@ final class PromptManager {
     func journalProcessingPrompt(
         content: String,
         persona: PersonaProfileModel?,
-        visualPreference: VisualPreference?
+        visualPreference: VisualPreference?,
+        journalingStyle: JournalingStyle? = nil,
+        emotionalExpression: EmotionalExpression? = nil
     ) throws -> PromptComponents {
         var context = PromptContext(primaryContent: content)
         context.persona = persona
         context.visualPreference = visualPreference
+        context.journalingStyle = journalingStyle
+        context.emotionalExpression = emotionalExpression
         return try buildPrompt(policyIdentifier: JournalProcessingPolicy.policyId, context: context)
     }
 

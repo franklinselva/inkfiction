@@ -138,6 +138,7 @@ final class ImageGenerationService {
         sceneDescription: String,
         persona: PersonaProfileModel? = nil,
         visualPreference: VisualPreference? = nil,
+        referenceImage: Data? = nil,
         progressHandler: ((Double) -> Void)? = nil
     ) async throws -> Data {
         // Check subscription
@@ -167,10 +168,11 @@ final class ImageGenerationService {
 
         Log.debug("Journal image prompt built via JournalImagePolicy: \(promptComponents.combinedPrompt.prefix(200))...", category: .ai)
 
-        // Generate image using Cloudflare Workers
+        // Generate image using Cloudflare Workers with optional reference image
         let (imageData, _) = try await geminiService.generateImage(
             prompt: promptComponents.combinedPrompt,
             aspectRatio: "16:9",
+            referenceImages: referenceImage.map { [$0] },
             operation: Constants.AI.Operations.journalImage
         )
 
@@ -194,6 +196,7 @@ final class ImageGenerationService {
         entry: JournalEntryModel,
         persona: PersonaProfileModel? = nil,
         visualPreference: VisualPreference? = nil,
+        referenceImage: Data? = nil,
         progressHandler: ((Double) -> Void)? = nil
     ) async throws -> Data? {
         guard let imagePrompt = processingResult.imagePrompt, !imagePrompt.isEmpty else {
@@ -206,6 +209,7 @@ final class ImageGenerationService {
             sceneDescription: imagePrompt,
             persona: persona,
             visualPreference: visualPreference,
+            referenceImage: referenceImage,
             progressHandler: progressHandler
         )
     }
