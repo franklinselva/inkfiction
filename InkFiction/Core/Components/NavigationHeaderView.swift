@@ -152,6 +152,9 @@ struct NavigationHeaderView: View {
         .onAppear {
             loadAvatarImage()
         }
+        .onDisappear {
+            avatarImage = nil
+        }
     }
 
     private func backButton(action: @escaping () -> Void) -> some View {

@@ -22,17 +22,37 @@ class CollageLayoutViewModel {
 
     private let engine = CollageLayoutEngine()
 
+    // Cache key for layout computations to avoid redundant work
+    private struct LayoutCacheKey: Hashable {
+        let entryId: UUID
+        let imageCount: Int
+        let hasAIImages: Bool
+        let hasPhotos: Bool
+        let updatedAt: Date
+    }
+
+    private var cachedLayoutKey: LayoutCacheKey?
+
     init(entry: JournalEntry, preloadedImages: [UUID: UIImage] = [:]) {
         self.entry = entry
         self.images = preloadedImages
 
-        // Compute layout decisions
+        // Compute layout decisions (cached)
+        let cacheKey = LayoutCacheKey(
+            entryId: entry.id,
+            imageCount: entry.images.count,
+            hasAIImages: !entry.generatedImages.isEmpty,
+            hasPhotos: !entry.attachedImages.isEmpty,
+            updatedAt: entry.updatedAt
+        )
+
         let pattern = engine.determineLayout(for: entry)
         let featured = engine.featuredImageId(for: entry)
 
         // Initialize stored properties
         self.layoutPattern = pattern
         self.featuredImageId = featured
+        self.cachedLayoutKey = cacheKey
 
         // Secondary images (all except featured)
         if let featured = featured {
@@ -58,22 +78,35 @@ class CollageLayoutViewModel {
     }
 
     func updateEntry(_ newEntry: JournalEntry) {
-        self.entry = newEntry
-        let pattern = engine.determineLayout(for: newEntry)
-        let featured = engine.featuredImageId(for: newEntry)
+        // Check if layout needs recomputation
+        let newCacheKey = LayoutCacheKey(
+            entryId: newEntry.id,
+            imageCount: newEntry.images.count,
+            hasAIImages: !newEntry.generatedImages.isEmpty,
+            hasPhotos: !newEntry.attachedImages.isEmpty,
+            updatedAt: newEntry.updatedAt
+        )
 
-        self.layoutPattern = pattern
-        self.featuredImageId = featured
+        // Only recompute layout if cache key changed
+        if cachedLayoutKey != newCacheKey {
+            let pattern = engine.determineLayout(for: newEntry)
+            let featured = engine.featuredImageId(for: newEntry)
 
-        if let featured = featured {
-            self.secondaryImageIds = newEntry.images.filter { $0.id != featured }.map(\.id)
-        } else {
-            self.secondaryImageIds = newEntry.images.map(\.id)
+            self.layoutPattern = pattern
+            self.featuredImageId = featured
+            self.cachedLayoutKey = newCacheKey
+
+            if let featured = featured {
+                self.secondaryImageIds = newEntry.images.filter { $0.id != featured }.map(\.id)
+            } else {
+                self.secondaryImageIds = newEntry.images.map(\.id)
+            }
+
+            self.firstAIImageId = newEntry.generatedImages.first?.id
+            self.photoIds = newEntry.attachedImages.map(\.id)
         }
 
-        self.firstAIImageId = newEntry.generatedImages.first?.id
-        self.photoIds = newEntry.attachedImages.map(\.id)
-
+        self.entry = newEntry
         loadImagesFromEntry()
     }
 

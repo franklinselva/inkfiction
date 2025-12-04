@@ -20,6 +20,7 @@ struct GlassmorphicMoodOrb: View {
     @State private var glowIntensity = 0.5
     @State private var rotationAngle = 0.0
     @State private var isTapped = false
+    @State private var isAnimating = false
 
     // Cached color values to avoid expensive recomputation
     @State private var cachedBlendedMoodColor: Color = .clear
@@ -267,6 +268,10 @@ struct GlassmorphicMoodOrb: View {
             // Update cached colors on initial appearance
             updateCachedColors()
 
+            // Prevent duplicate animation triggers
+            guard !isAnimating else { return }
+            isAnimating = true
+
             let theme = themeManager.currentTheme
             glowIntensity = theme.orbGlowIntensity * 0.7
 
@@ -281,6 +286,10 @@ struct GlassmorphicMoodOrb: View {
             withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
                 rotationAngle = 360
             }
+        }
+        .onDisappear {
+            // Reset animation flag when view disappears
+            isAnimating = false
         }
         .onChange(of: mood) { _, _ in
             // Update cached colors when mood changes

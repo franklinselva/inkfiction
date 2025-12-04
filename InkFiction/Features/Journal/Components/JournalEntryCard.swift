@@ -39,7 +39,9 @@ struct JournalEntryCard: View, Equatable {
 
             VStack(alignment: .leading, spacing: 12) {
                 // Contextual collage view (shows appropriate layout based on image count)
+                // Use equatable() to prevent unnecessary re-renders of expensive collage view
                 JournalContextualCollageView(entry: entry)
+                    .equatable()
 
                 // Header with title, pin icon, date, and chevron
                 HStack {
@@ -85,20 +87,29 @@ struct JournalEntryCard: View, Equatable {
 
                 // Tags
                 if !entry.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(entry.tags, id: \.self) { tag in
-                                Text("#\(tag)")
-                                    .font(.caption)
-                                    .foregroundColor(themeManager.currentTheme.accentColor)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        Capsule()
-                                            .fill(themeManager.currentTheme.accentColor.opacity(0.2))
-                                    )
-                            }
+                    HStack(spacing: 8) {
+                        ForEach(entry.tags.prefix(3), id: \.self) { tag in
+                            Text("#\(tag)")
+                                .font(.caption)
+                                .foregroundColor(themeManager.currentTheme.accentColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(themeManager.currentTheme.accentColor.opacity(0.2))
+                                )
+                                .lineLimit(1)
                         }
+
+                        if entry.tags.count > 3 {
+                            Text("+\(entry.tags.count - 3)")
+                                .font(.caption)
+                                .foregroundColor(themeManager.currentTheme.textSecondaryColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                        }
+
+                        Spacer()
                     }
                 }
             }

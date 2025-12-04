@@ -260,6 +260,7 @@ struct JournalListView: View {
                                     isSelectionMode: viewModel.isSelectionMode,
                                     isSelected: viewModel.selectedEntries.contains(entry.id)
                                 )
+                                .equatable()
                             }
                             .buttonStyle(JournalCardButtonStyle())
                             .contextMenu {

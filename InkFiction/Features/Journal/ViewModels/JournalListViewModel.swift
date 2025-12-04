@@ -279,7 +279,15 @@ final class JournalListViewModel {
 
             do {
                 try await repository.archiveEntry(model)
-                await loadEntriesAsync()
+
+                // Incremental update: update the entry in place
+                if let index = entries.firstIndex(where: { $0.id == entry.id }) {
+                    var updatedEntry = entries[index]
+                    updatedEntry.isArchived = true
+                    entries[index] = updatedEntry
+                    updateFilteredEntries()
+                }
+
                 Log.info("Entry archived: \(entry.id)", category: .journal)
             } catch {
                 self.error = error
@@ -294,7 +302,15 @@ final class JournalListViewModel {
 
             do {
                 try await repository.unarchiveEntry(model)
-                await loadEntriesAsync()
+
+                // Incremental update: update the entry in place
+                if let index = entries.firstIndex(where: { $0.id == entry.id }) {
+                    var updatedEntry = entries[index]
+                    updatedEntry.isArchived = false
+                    entries[index] = updatedEntry
+                    updateFilteredEntries()
+                }
+
                 Log.info("Entry unarchived: \(entry.id)", category: .journal)
             } catch {
                 self.error = error
@@ -309,7 +325,15 @@ final class JournalListViewModel {
 
             do {
                 try await repository.togglePin(model)
-                await loadEntriesAsync()
+
+                // Incremental update: update the entry in place
+                if let index = entries.firstIndex(where: { $0.id == entry.id }) {
+                    var updatedEntry = entries[index]
+                    updatedEntry.isPinned.toggle()
+                    entries[index] = updatedEntry
+                    updateFilteredEntries()
+                }
+
                 Log.info("Entry pin toggled: \(entry.id)", category: .journal)
             } catch {
                 self.error = error
@@ -363,8 +387,10 @@ final class JournalListViewModel {
         Task {
             Log.info("Bulk archiving \(selectedEntries.count) entries", category: .journal)
 
+            let entriesToArchive = selectedEntries
+
             await withTaskGroup(of: Void.self) { group in
-                for id in selectedEntries {
+                for id in entriesToArchive {
                     group.addTask {
                         if let model = try? await self.repository.getEntry(by: id) {
                             try? await self.repository.archiveEntry(model)
@@ -373,9 +399,18 @@ final class JournalListViewModel {
                 }
             }
 
+            // Incremental update: update all archived entries in place
+            for id in entriesToArchive {
+                if let index = entries.firstIndex(where: { $0.id == id }) {
+                    var updatedEntry = entries[index]
+                    updatedEntry.isArchived = true
+                    entries[index] = updatedEntry
+                }
+            }
+
             isSelectionMode = false
             selectedEntries.removeAll()
-            await loadEntriesAsync()
+            updateFilteredEntries()
         }
     }
 
@@ -383,8 +418,10 @@ final class JournalListViewModel {
         Task {
             Log.info("Bulk deleting \(selectedEntries.count) entries", category: .journal)
 
+            let entriesToDelete = selectedEntries
+
             await withTaskGroup(of: Void.self) { group in
-                for id in selectedEntries {
+                for id in entriesToDelete {
                     group.addTask {
                         if let model = try? await self.repository.getEntry(by: id) {
                             try? await self.repository.deleteEntry(model)
@@ -393,9 +430,12 @@ final class JournalListViewModel {
                 }
             }
 
+            // Incremental update: remove all deleted entries from array
+            entries.removeAll { entriesToDelete.contains($0.id) }
+
             isSelectionMode = false
             selectedEntries.removeAll()
-            await loadEntriesAsync()
+            updateFilteredEntries()
         }
     }
 }

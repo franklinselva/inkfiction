@@ -106,6 +106,7 @@ final class CloudKitManager {
     // MARK: - Account Status
 
     /// Check the current iCloud account status
+    @MainActor
     func checkAccountStatus() async {
         guard !isCheckingAccount else { return }
 
@@ -116,14 +117,10 @@ final class CloudKitManager {
 
         do {
             let status = try await container.accountStatus()
-            await MainActor.run {
-                self.accountStatus = self.mapAccountStatus(status)
-            }
+            self.accountStatus = self.mapAccountStatus(status)
             Log.info("iCloud account status: \(self.accountStatus.statusMessage)", category: .cloudKit)
         } catch {
-            await MainActor.run {
-                self.accountStatus = .couldNotDetermine
-            }
+            self.accountStatus = .couldNotDetermine
             Log.error("Failed to check iCloud account status", error: error, category: .cloudKit)
         }
     }

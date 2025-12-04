@@ -128,16 +128,13 @@ final class PersonaRepository {
             let personas = try context.fetch(descriptor)
             currentPersona = personas.first
 
-            // Only load active avatar image data (lazy load others on demand)
+            // Only load metadata (no image data during warmup - lazy load on demand)
             if let persona = currentPersona {
-                // Load avatars count but not all image data
+                // Load avatars count but not any image data
                 let avatarCount = persona.avatars?.count ?? 0
 
-                // Only load the active avatar's image data
-                if let activeAvatarId = persona.activeAvatarId,
-                   let activeAvatar = persona.avatars?.first(where: { $0.id == activeAvatarId }) {
-                    _ = activeAvatar.imageData
-                }
+                // Do not load imageData during warmup - it will be lazy-loaded when needed
+                // This prevents excessive memory consumption during app startup
 
                 Log.info("PersonaRepository warmed up with persona '\(persona.name)' and \(avatarCount) avatars", category: .persona)
             } else {
@@ -287,15 +284,16 @@ final class PersonaRepository {
             }
         }
 
-        // Delete all avatars from CloudKit
-        for avatar in persona.avatars ?? [] {
-            if let recordName = avatar.cloudKitRecordName {
-                do {
-                    let recordID = CKRecord.ID(recordName: recordName)
-                    try await cloudKitManager.delete(recordID: recordID)
-                } catch {
-                    Log.warning("Failed to delete avatar from CloudKit: \(error.localizedDescription)", category: .cloudKit)
-                }
+        // Batch delete all avatars from CloudKit
+        let avatarRecordIDs = (persona.avatars ?? [])
+            .compactMap { $0.cloudKitRecordName }
+            .map { CKRecord.ID(recordName: $0) }
+
+        if !avatarRecordIDs.isEmpty {
+            do {
+                try await cloudKitManager.batchDelete(avatarRecordIDs)
+            } catch {
+                Log.warning("Failed to batch delete avatars from CloudKit: \(error.localizedDescription)", category: .cloudKit)
             }
         }
 
